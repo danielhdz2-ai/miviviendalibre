@@ -16,12 +16,11 @@ function getAdminClient() {
 // GET: llamado por Vercel Cron o manualmente con ?secret=CRON_SECRET
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('secret')
-  const cronHeader = req.headers.get('authorization')
+  // Vercel Cron envía este header automáticamente
+  const isCronCall = req.headers.get('x-vercel-cron') === '1'
 
-  const validSecret = process.env.CRON_SECRET
-  const isAuthorized =
-    (validSecret && secret === validSecret) ||
-    (validSecret && cronHeader === `Bearer ${validSecret}`)
+  const validSecret = process.env.SCRAPER_SECRET
+  const isAuthorized = isCronCall || (validSecret && secret === validSecret)
 
   if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
