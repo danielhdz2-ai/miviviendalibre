@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1008;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Paleta dorada pastel — marca Mi Vivienda Libre */
+  --color-gold-50:  #fefae8;
+  --color-gold-100: #fdf0c0;
+  --color-gold-200: #f9df89;
+  --color-gold-300: #f4c94a;
+  --color-gold-400: #e8b52a;
+  --color-gold-500: #c9962a;
+  --color-gold-600: #a87a20;
+  --color-gold-700: #856018;
+  --color-gold-800: #614510;
+  --color-gold-900: #42300a;
+
+  /* Crema / fondos cálidos */
+  --color-cream-50:  #fffdf5;
+  --color-cream-100: #fef9e8;
+  --color-cream-200: #faf0cc;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
