@@ -161,7 +161,7 @@ export default function Home() {
       <footer className="mt-auto border-t border-[#f4c94a]/20 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Mi Vivienda Libre" width={28} height={28} className="h-7 w-auto opacity-80" />
+            <Image src="/logo.png" alt="Mi Vivienda Libre" width={120} height={36} className="h-8 w-auto opacity-80" />
             <span>© 2026 Mi Vivienda Libre. Todos los derechos reservados.</span>
           </div>
           <div className="flex gap-5">

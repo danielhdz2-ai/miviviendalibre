@@ -1,9 +1,9 @@
 -- ============================================================
--- Mi Vivienda Libre â€” Storage para imÃ¡genes de anuncios
+-- Mi Vivienda Libre — Storage para imágenes de anuncios
 -- Ejecutar en: Supabase Dashboard > SQL Editor
 -- ============================================================
 
--- Crear bucket pÃºblico para imÃ¡genes
+-- Crear bucket público para imágenes
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'listings',
@@ -14,7 +14,7 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Lectura pÃºblica (cualquiera puede ver las fotos)
+-- Lectura pública (cualquiera puede ver las fotos)
 CREATE POLICY "listings_storage_select"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'listings');
@@ -28,7 +28,7 @@ CREATE POLICY "listings_storage_insert"
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
 
--- Borrado: solo el propietario puede borrar sus imÃ¡genes
+-- Borrado: solo el propietario puede borrar sus imágenes
 CREATE POLICY "listings_storage_delete"
   ON storage.objects FOR DELETE
   USING (
