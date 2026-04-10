@@ -1,10 +1,13 @@
 ﻿'use server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import Navbar from '@/components/NavbarServer'
 import ContactForm from './ContactForm'
 import { getListingById } from '@/lib/listings'
 import type { Metadata } from 'next'
+
+const ListingMap = dynamic(() => import('@/components/ListingMap'), { ssr: false })
 
 interface Props {
   params: Promise<{ id: string }>
@@ -71,14 +74,42 @@ export default async function ListingDetailPage({ params }: Props) {
             {/* Galería de imágenes */}
             <div className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm">
               {images.length > 0 ? (
-                <div className="aspect-[16/9] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={images[0].storage_path ?? images[0].external_url ?? ''}
-                    alt={listing.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <>
+                  {/* Imagen principal */}
+                  <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={images[0].storage_path ?? images[0].external_url ?? ''}
+                      alt={listing.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {images.length > 1 && (
+                      <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">
+                        1 / {images.length} fotos
+                      </span>
+                    )}
+                  </div>
+                  {/* Grid de miniaturas */}
+                  {images.length > 1 && (
+                    <div className="grid grid-cols-4 gap-1 p-1">
+                      {images.slice(1, 5).map((img, i) => (
+                        <div key={img.id} className="relative aspect-[4/3] overflow-hidden bg-gray-100 rounded">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img.storage_path ?? img.external_url ?? ''}
+                            alt={`Foto ${i + 2}`}
+                            className="w-full h-full object-cover hover:opacity-90 transition-opacity cursor-pointer"
+                          />
+                          {i === 3 && images.length > 5 && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <span className="text-white font-bold text-sm">+{images.length - 5}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="aspect-[16/9] bg-gray-100 flex items-center justify-center">
                   <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,21 +119,6 @@ export default async function ListingDetailPage({ params }: Props) {
                 </div>
               )}
 
-              {/* Miniaturas */}
-              {images.length > 1 && (
-                <div className="flex gap-2 p-3 overflow-x-auto">
-                  {images.slice(1).map((img, i) => (
-                    <div key={img.id} className="w-20 h-14 shrink-0 rounded-md overflow-hidden bg-gray-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={img.storage_path ?? img.external_url ?? ''}
-                        alt={`Foto ${i + 2}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Descripción */}
@@ -117,48 +133,94 @@ export default async function ListingDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Características */}
+            {/* Características básicas */}
             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h2 className="font-semibold text-gray-900 mb-4">Características</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">Características básicas</h2>
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
                 {listing.bedrooms != null && (
-                  <div>
-                    <dt className="text-gray-500">Habitaciones</dt>
-                    <dd className="font-semibold text-gray-900 mt-0.5">{listing.bedrooms}</dd>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🛏️</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Habitaciones</dt>
+                      <dd className="font-semibold text-gray-900">{listing.bedrooms === 0 ? 'Estudio' : listing.bedrooms}</dd>
+                    </div>
                   </div>
                 )}
                 {listing.bathrooms != null && (
-                  <div>
-                    <dt className="text-gray-500">Baños</dt>
-                    <dd className="font-semibold text-gray-900 mt-0.5">{listing.bathrooms}</dd>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🚿</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Baños</dt>
+                      <dd className="font-semibold text-gray-900">{listing.bathrooms}</dd>
+                    </div>
                   </div>
                 )}
                 {listing.area_m2 != null && (
-                  <div>
-                    <dt className="text-gray-500">Superficie</dt>
-                    <dd className="font-semibold text-gray-900 mt-0.5">{listing.area_m2} m²</dd>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">📐</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Superficie</dt>
+                      <dd className="font-semibold text-gray-900">{listing.area_m2} m²</dd>
+                    </div>
                   </div>
                 )}
-                <div>
-                  <dt className="text-gray-500">Operación</dt>
-                  <dd className="font-semibold text-gray-900 mt-0.5">
-                    {listing.operation === 'rent' ? 'Alquiler' : 'Venta'}
-                  </dd>
+                {listing.area_m2 && listing.price_eur && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">💶</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Precio/m²</dt>
+                      <dd className="font-semibold text-gray-900">
+                        {Math.round(listing.price_eur / listing.area_m2).toLocaleString('es-ES')} €/m²
+                      </dd>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-start gap-2">
+                  <span className="text-lg leading-none mt-0.5">🔑</span>
+                  <div>
+                    <dt className="text-gray-500 text-xs">Operación</dt>
+                    <dd className="font-semibold text-gray-900">{listing.operation === 'rent' ? 'Alquiler' : 'Venta'}</dd>
+                  </div>
                 </div>
                 {listing.province && (
-                  <div>
-                    <dt className="text-gray-500">Provincia</dt>
-                    <dd className="font-semibold text-gray-900 mt-0.5">{listing.province}</dd>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">📍</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Provincia</dt>
+                      <dd className="font-semibold text-gray-900">{listing.province}</dd>
+                    </div>
                   </div>
                 )}
                 {listing.postal_code && (
-                  <div>
-                    <dt className="text-gray-500">Código postal</dt>
-                    <dd className="font-semibold text-gray-900 mt-0.5">{listing.postal_code}</dd>
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">📮</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Código postal</dt>
+                      <dd className="font-semibold text-gray-900">{listing.postal_code}</dd>
+                    </div>
                   </div>
                 )}
               </dl>
             </div>
+
+            {/* Mapa */}
+            {listing.lat && listing.lng && (
+              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                <h2 className="font-semibold text-gray-900 mb-3">Ubicación aproximada</h2>
+                <p className="text-xs text-gray-400 mb-3">
+                  Se muestra una zona aproximada para proteger la privacidad del propietario.
+                </p>
+                <ListingMap
+                  lat={listing.lat}
+                  lng={listing.lng}
+                  title={listing.title}
+                  price={formatPrice(listing.price_eur, listing.operation)}
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  📍 {[listing.district, listing.city, listing.province].filter(Boolean).join(', ')}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Columna derecha: precio + contacto */}
@@ -208,10 +270,44 @@ export default async function ListingDetailPage({ params }: Props) {
                   rel="noopener noreferrer"
                   className="mt-4 block text-center text-xs text-gray-400 hover:text-gray-600 underline"
                 >
-                  Ver anuncio original en {listing.source_portal}
+                  Ver anuncio original →
                 </a>
               )}
             </div>
+
+            {/* Análisis de precio */}
+            {listing.price_eur && listing.area_m2 && (
+              <div className="bg-[#fef9e8] rounded-xl p-5 border border-[#f4c94a]/40">
+                <p className="text-xs font-bold text-[#a87a20] uppercase tracking-wider mb-3">📊 Análisis del precio</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Precio total</span>
+                    <span className="font-semibold text-gray-900">
+                      {listing.price_eur.toLocaleString('es-ES')} €{listing.operation === 'rent' ? '/mes' : ''}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Precio por m²</span>
+                    <span className="font-semibold text-[#c9962a]">
+                      {Math.round(listing.price_eur / listing.area_m2).toLocaleString('es-ES')} €/m²
+                    </span>
+                  </div>
+                  {listing.operation === 'rent' && listing.area_m2 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Coste anual</span>
+                      <span className="font-semibold text-gray-900">
+                        {(listing.price_eur * 12).toLocaleString('es-ES')} €
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {listing.is_particular && (
+                  <p className="mt-3 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">
+                    ✓ Anuncio de particular — sin comisión de agencia
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* CTA contratos */}
             <div className="bg-[#fef9e8] rounded-xl p-5 border border-[#f4c94a]/30">
