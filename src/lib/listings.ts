@@ -46,6 +46,10 @@ export async function searchListings(params: SearchParams): Promise<{
     query = query.eq('is_particular', true)
   }
 
+  if (params.solo_bancarias) {
+    query = query.eq('is_bank', true)
+  }
+
   if (params.ciudad) {
     const ciudad = params.ciudad.toLowerCase()
     query = query.or(

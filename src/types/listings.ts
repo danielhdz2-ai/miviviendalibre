@@ -41,6 +41,8 @@ export interface Listing {
   created_at: string
   updated_at: string
   features: Record<string, string> | null
+  is_bank: boolean | null
+  bank_entity: string | null
   listing_images?: ListingImage[]
 }
 
@@ -51,7 +53,8 @@ export interface SearchParams {
   ciudad?: string
   operacion?: OperationType
   solo_particulares?: boolean
-  habitaciones?: number        // 0=estudio, 1, 2, 3, 4 (4=4+)
+  solo_bancarias?: boolean
+  habitaciones?: number
   habitaciones_min?: number
   banos_min?: number
   precio_min?: number

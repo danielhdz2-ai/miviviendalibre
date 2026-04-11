@@ -247,6 +247,15 @@ export default async function ListingDetailPage({ params }: Props) {
                     </div>
                   </div>
                 )}
+                {listing.bank_entity && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🏦</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Entidad bancaria</dt>
+                      <dd className="font-semibold text-blue-800">{listing.bank_entity}</dd>
+                    </div>
+                  </div>
+                )}
               </dl>
             </div>
 

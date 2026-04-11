@@ -27,7 +27,9 @@ export default function ListingCardList({ listing }: ListingCardListProps) {
     <Link href={`/pisos/${listing.id}`} className="group block">
       <article
         className={`bg-white rounded-xl overflow-hidden border flex transition-all duration-200 hover:shadow-md ${
-          isTurboActive
+          listing.is_bank
+            ? 'border-blue-200 shadow-blue-50 shadow-sm'
+            : isTurboActive
             ? 'border-amber-300 shadow-amber-50 shadow-sm'
             : 'border-gray-100 shadow-sm'
         }`}
@@ -37,7 +39,12 @@ export default function ListingCardList({ listing }: ListingCardListProps) {
           <ListingCardGallery images={images} title={listing.title} aspectClass="" className="absolute inset-0" />
 
           {/* Badge Turbo */}
-          {isTurboActive && (
+          {listing.is_bank && (
+            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-900 text-yellow-300 z-20 pointer-events-none">
+              🏦 Banco
+            </span>
+          )}
+          {isTurboActive && !listing.is_bank && (
             <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-amber-900 z-20 pointer-events-none">
               ⚡ Turbo
             </span>
@@ -58,6 +65,11 @@ export default function ListingCardList({ listing }: ListingCardListProps) {
               >
                 {listing.operation === 'rent' ? 'Alquiler' : 'Venta'}
               </span>
+              {listing.is_bank && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-900 text-yellow-300">
+                  🏦 Oportunidad Bancaria
+                </span>
+              )}
               {listing.is_particular && (
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gold-100 text-gold-700">
                   Particular

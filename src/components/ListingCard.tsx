@@ -25,13 +25,18 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
   return (
     <Link href={`/pisos/${listing.id}`} className="group block">
-      <article className={`bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${isTurboActive ? 'border-amber-300 shadow-amber-50 shadow-md' : 'border-gray-100 shadow-sm'}`}>
+      <article className={`bg-white rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${listing.is_bank ? 'border-blue-200 shadow-blue-50 shadow-md' : isTurboActive ? 'border-amber-300 shadow-amber-50 shadow-md' : 'border-gray-100 shadow-sm'}`}>
         {/* Galería con flechas */}
         <div className="relative">
           <ListingCardGallery images={images} title={listing.title} aspectClass="aspect-[4/3]" />
 
           {/* Badges superpuestos */}
           <div className="absolute top-2 left-2 flex flex-wrap gap-1 pointer-events-none z-20">
+            {listing.is_bank && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-900 text-yellow-300 flex items-center gap-1">
+                🏦 Banco
+              </span>
+            )}
             {isTurboActive && (
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-amber-900 flex items-center gap-1">
                 ⚡ Turbo
@@ -73,6 +78,13 @@ export default function ListingCard({ listing }: ListingCardProps) {
           <p className="mt-1 text-xs text-gray-500">
             {[listing.district, listing.city, listing.province].filter(Boolean).join(', ')}
           </p>
+
+          {/* Entidad bancaria */}
+          {listing.is_bank && listing.bank_entity && (
+            <p className="mt-1 text-xs font-medium text-blue-700 flex items-center gap-1">
+              🏦 {listing.bank_entity}
+            </p>
+          )}
 
           {/* Características */}
           <div className="mt-3 flex items-center gap-3 text-xs text-gray-600">
