@@ -9,7 +9,7 @@
  * de Kelify (SSR/Next.js clean). Extrae: precio, m2, habitaciones, baños,
  * galería de imágenes y enlace original.
  *
- * Deduplicación: Verifica external_id contra Supabase antes de insertar.
+ * Deduplicación: Verifica source_external_id contra Supabase antes de insertar.
  * Marca: source='kelify', is_particular=true, is_bank=false
  *
  * Uso: npx tsx scripts/scrapers/kelify_standalone.ts [operation] [city] [maxPages]
@@ -49,8 +49,8 @@ const CITY_MAP: Record<string, { province: string; city: string; slug: string }>
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface KelifyListing {
-  external_id: string
-  external_url: string
+  source_external_id: string
+  source_url: string
   title: string
   price_eur: number | null
   area_m2: number | null
@@ -160,8 +160,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
           }
 
           results.push({
-            external_id: `kelify_${rawId}`,
-            external_url: typeof item.url === 'string' ? item.url :
+            source_external_id: `kelify_${rawId}`,
+            source_url: typeof item.url === 'string' ? item.url :
               typeof item.slug === 'string' ? `https://kelify.com/${item.slug}` : '',
             title: String(item.title ?? item.name ?? item.description ?? ''),
             price_eur: parseNumber(String(item.price ?? item.priceEur ?? '')),
@@ -205,8 +205,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
 
           const offers = inner.offers as Record<string, unknown> | undefined
           results.push({
-            external_id: `kelify_${rawId}`,
-            external_url: String(inner.url ?? ''),
+            source_external_id: `kelify_${rawId}`,
+            source_url: String(inner.url ?? ''),
             title: String(inner.name ?? ''),
             price_eur: parseNumber(String(offers?.price ?? inner.price ?? '')),
             area_m2: parseNumber(String((inner.floorSize as Record<string, unknown>)?.value ?? '')),
@@ -248,8 +248,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
       const imgM   = html.slice(start, end).match(/<img[^>]+src="(https?:\/\/[^"]+(?:jpg|jpeg|webp|png)[^"]*)"/i)
 
       results.push({
-        external_id: `kelify_${id}`,
-        external_url: url,
+        source_external_id: `kelify_${id}`,
+        source_url: url,
         title: '',
         price_eur: priceM ? parseNumber(priceM[1]) : null,
         area_m2: area,
@@ -270,7 +270,7 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
 async function existsInDb(externalId: string): Promise<boolean> {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
+      `${SUPABASE_URL}/rest/v1/listings?source_external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
       {
         headers: {
           apikey: SUPABASE_KEY,
@@ -289,8 +289,8 @@ async function existsInDb(externalId: string): Promise<boolean> {
 
 async function upsertToSupabase(listing: KelifyListing, operation: string): Promise<boolean> {
   const mapped = {
-    external_id: listing.external_id,
-    external_url: listing.external_url || null,
+    source_external_id: listing.source_external_id,
+    source_url: listing.source_url || null,
     title: listing.title || `Piso en ${listing.city}`,
     price_eur: listing.price_eur,
     area_m2: listing.area_m2,
@@ -299,11 +299,11 @@ async function upsertToSupabase(listing: KelifyListing, operation: string): Prom
     city: listing.city,
     province: listing.province,
     operation: operation === 'alquiler' ? 'rent' : 'sale',
+    origin: 'external',
     status: 'published',
     is_particular: true,
     is_bank: false,
     source_portal: SOURCE,
-    original_portal_name: ORIGINAL_PORTAL,
     published_at: new Date().toISOString(),
     ranking_score: 55, // Kelify pre-filters particulars → slightly higher quality signal
   }
@@ -330,7 +330,7 @@ async function upsertToSupabase(listing: KelifyListing, operation: string): Prom
     // Fetch the inserted ID then insert images
     if (listing.images.length > 0) {
       const idRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?external_id=eq.${encodeURIComponent(listing.external_id)}&select=id`,
+        `${SUPABASE_URL}/rest/v1/listings?source_external_id=eq.${encodeURIComponent(listing.source_external_id)}&select=id`,
         {
           headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
           signal: AbortSignal.timeout(10000),
@@ -341,7 +341,7 @@ async function upsertToSupabase(listing: KelifyListing, operation: string): Prom
         if (rows[0]?.id) {
           const imageRows = listing.images.slice(0, 8).map((url, pos) => ({
             listing_id: rows[0].id,
-            external_url: url,
+            source_url: url,
             position: pos,
           }))
           await fetch(`${SUPABASE_URL}/rest/v1/listing_images`, {
@@ -431,7 +431,7 @@ async function run() {
 
     for (const listing of listings) {
       try {
-        const alreadyExists = await existsInDb(listing.external_id)
+        const alreadyExists = await existsInDb(listing.source_external_id)
         if (alreadyExists) {
           totalSkipped++
           continue
@@ -439,10 +439,10 @@ async function run() {
         const ok = await upsertToSupabase(listing, operation)
         if (ok) {
           totalInserted++
-          console.log(`    ✅ ${listing.external_id} — ${listing.title.slice(0, 50)}`)
+          console.log(`    ✅ ${listing.source_external_id} — ${listing.title.slice(0, 50)}`)
         }
       } catch (err) {
-        console.warn(`    ⚠️ Error procesando ${listing.external_id}: ${err}`)
+        console.warn(`    ⚠️ Error procesando ${listing.source_external_id}: ${err}`)
       }
       await sleep(200)
     }
@@ -458,3 +458,4 @@ run().catch(err => {
   console.error('[Kelify] ❌ Error fatal:', err)
   process.exit(1)
 })
+

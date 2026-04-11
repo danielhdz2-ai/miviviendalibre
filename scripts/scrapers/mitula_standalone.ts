@@ -1,8 +1,9 @@
 /**
  * 🏠 ROBOT A — Mitula Standalone Scraper
  * ────────────────────────────────────────────────────────────────────────────
- * Target: https://pisos.mitula.com/pisos/pisos-particular-{ciudad}
- * Misión: Capturar exclusivamente anuncios de particulares de Mitula
+ * Target: https://pisos.mitula.com/pisos/st-{ciudad}  (venta)
+ *         https://pisos.mitula.com/pisos/alquiler-st-{ciudad}  (alquiler)
+ * Misión: Capturar anuncios de pisos en Mitula
  *
  * ARQUITECTURA INDEPENDIENTE: Sin dependencias de scrapers compartidos.
  * Lógica de deduplicación, conexión Supabase y manejo de errores propios.
@@ -44,8 +45,8 @@ const CITY_MAP: Record<string, { province: string; city: string; slug: string }>
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface MitulaListing {
-  external_id: string
-  external_url: string
+  source_external_id: string
+  source_url: string
   title: string
   price_eur: number | null
   area_m2: number | null
@@ -96,10 +97,16 @@ async function fetchHtml(url: string): Promise<string | null> {
 // ─── Parsing ─────────────────────────────────────────────────────────────────
 
 /**
- * Mitula renderiza en SSR sus cards con estructuras como:
- *   <li class="listing ..."> con data-id, data-price, data-area, data-rooms
- *   O bien <article class="listing_card ...">
- * Extraemos primero via JSON-LD, luego via atributos data-*.
+ * Mitula SSR: cada card tiene una imagen en imganuncios.mitula.net cuyo
+ * nombre de fichero contiene el ID numérico al final.
+ * Ejemplo: https://imganuncios.mitula.net/piso_de_lujo_de_177_m2_..._2430000773136331006.jpg
+ * El bloque del card contiene precio, dormitorios, baños y m².
+ *
+ * Estrategias en orden:
+ *   1. JSON-LD (schema.org)
+ *   2. data-id en <li> / <article>
+ *   3. Imagen imganuncios.mitula.net → extrae contexto del bloque
+ *   4. href a /inmueble/ (fallback links-only)
  */
 function extractListings(html: string, cityMeta: { province: string; city: string }): MitulaListing[] {
   const results: MitulaListing[] = []
@@ -118,8 +125,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
         if (!id || seen.has(id)) continue
         seen.add(id)
         results.push({
-          external_id: `mitula_${id}`,
-          external_url: item.url ?? '',
+          source_external_id: `mitula_${id}`,
+          source_url: item.url ?? '',
           title: item.name ?? '',
           price_eur: parseNumber(String(item.offers?.price ?? item.price ?? '')),
           area_m2: parseNumber(String(item.floorSize?.value ?? '')),
@@ -135,27 +142,22 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
     }
   }
 
-  // Estrategia 2: atributos data-* en li.listing o li.nativa
-  // <li ... data-id="123456" data-price="250000" data-area="80" data-rooms="3" ...>
-  const liRe = /<li[^>]+data-id="([^"]+)"([^>]*)>/gi
+  // Estrategia 2: atributos data-id en <li> o <article>
+  const liRe = /<(?:li|article)[^>]+data-id="([^"]+)"([^>]*)>/gi
   while ((m = liRe.exec(html))) {
     const rawId = m[1]
     const attrs = m[2]
     if (seen.has(rawId)) continue
-
-    const price    = (attrs.match(/data-price="([^"]+)"/))?.[1] ?? null
-    const area     = (attrs.match(/data-area="([^"]+)"/))?.[1] ?? null
-    const rooms    = (attrs.match(/data-rooms="([^"]+)"/))?.[1] ?? null
-    const bathsM   = (attrs.match(/data-baths="([^"]+)"/))?.[1] ?? null
-
-    // Find the URL for this listing in the next ~500 chars
-    const slice = html.slice(m.index, m.index + 600)
-    const urlM = slice.match(/href="(https?:\/\/[^"]+mitula[^"]+\/inmueble\/[^"]+)"/)
-
+    const price  = (attrs.match(/data-price="([^"]+)"/))?.[1] ?? null
+    const area   = (attrs.match(/data-area="([^"]+)"/))?.[1] ?? null
+    const rooms  = (attrs.match(/data-rooms="([^"]+)"/))?.[1] ?? null
+    const bathsM = (attrs.match(/data-baths="([^"]+)"/))?.[1] ?? null
+    const slice  = html.slice(m.index, m.index + 700)
+    const urlM   = slice.match(/href="(https?:\/\/[^"]+mitula[^"]+\/inmueble\/[^"]+)"/)
     seen.add(rawId)
     results.push({
-      external_id: `mitula_${rawId}`,
-      external_url: urlM ? urlM[1] : '',
+      source_external_id: `mitula_${rawId}`,
+      source_url: urlM ? urlM[1] : '',
       title: (slice.match(/<[^>]+class="[^"]*listing[-_]title[^"]*"[^>]*>([^<]+)/))?.[1]?.trim() ?? '',
       price_eur: parseNumber(price),
       area_m2: parseNumber(area),
@@ -163,11 +165,60 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
       bathrooms: parseNumber(bathsM),
       city: cityMeta.city,
       province: cityMeta.province,
-      image_url: (slice.match(/<img[^>]+src="(https?:\/\/[^"]+(?:jpg|jpeg|webp|png)[^"]*)"/i))?.[1] ?? null,
+      image_url: (slice.match(/src="(https?:\/\/imganuncios\.mitula\.net\/[^"]+)"/i))?.[1] ?? null,
     })
   }
 
-  // Estrategia 3: enlaces directos a fichas de propiedad
+  // Estrategia 3: imagen imganuncios.mitula.net (ID en nombre de fichero)
+  // src="https://imganuncios.mitula.net/titulo_piso_..._<ID>.jpg"
+  if (results.length === 0) {
+    const imgRe = /src="(https?:\/\/imganuncios\.mitula\.net\/([^"]+?)_(\d{10,20})\.(?:jpg|jpeg|webp|png))"/gi
+    while ((m = imgRe.exec(html))) {
+      const imgUrl = m[1]
+      const rawId  = m[3]
+      if (seen.has(rawId)) continue
+
+      // Ventana de ~1200 chars centrada en la imagen para buscar datos del card
+      const start = Math.max(0, m.index - 800)
+      const block = html.slice(start, m.index + 400)
+
+      // Precio: "1.150.000 €" o "150000 €"
+      const priceM = block.match(/([\d]{2,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*€/)
+      // m²
+      const areaM  = block.match(/(\d+)\s*m(?:²|2)/)
+      // Dormitorios
+      const roomM  = block.match(/(\d+)\s*[Dd]ormitor/)
+      // Baños
+      const bathM  = block.match(/(\d+)\s*[Bb]a[ñn]o/)
+      // href a ficha
+      const urlM   = block.match(/href="(https?:\/\/[^"]+\/inmueble\/[^"]+)"/) ??
+                     block.match(/href="(\/inmueble\/[^"]+)"/)
+      // Título: usar el nombre del fichero de imagen (más fiable que alt)
+      const titleRaw = m[2]
+        .replace(/_(\d{10,20})$/, '')
+        .replace(/_/g, ' ')
+        .trim()
+      const title = titleRaw.charAt(0).toUpperCase() + titleRaw.slice(1) || `Piso en ${cityMeta.city}`
+
+      seen.add(rawId)
+      results.push({
+        source_external_id: `mitula_${rawId}`,
+        source_url: urlM
+          ? (urlM[1].startsWith('http') ? urlM[1] : `https://pisos.mitula.com${urlM[1]}`)
+          : `https://pisos.mitula.com/inmueble/${rawId}`,
+        title: title,
+        price_eur: priceM ? parseNumber(priceM[1]) : null,
+        area_m2: areaM ? parseNumber(areaM[1]) : null,
+        bedrooms: roomM ? parseNumber(roomM[1]) : null,
+        bathrooms: bathM ? parseNumber(bathM[1]) : null,
+        city: cityMeta.city,
+        province: cityMeta.province,
+        image_url: imgUrl,
+      })
+    }
+  }
+
+  // Estrategia 4: href directo a /inmueble/ (links-only fallback)
   if (results.length === 0) {
     const hrefRe = /href="(https?:\/\/(?:[a-z]+\.)?mitula\.[a-z]+\/inmueble\/[^"]+)"/gi
     while ((m = hrefRe.exec(html))) {
@@ -176,8 +227,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
       if (!idFromUrl || seen.has(idFromUrl)) continue
       seen.add(idFromUrl)
       results.push({
-        external_id: `mitula_${idFromUrl}`,
-        external_url: url,
+        source_external_id: `mitula_${idFromUrl}`,
+        source_url: url,
         title: '',
         price_eur: null,
         area_m2: null,
@@ -195,10 +246,10 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
 
-/** Check if external_id already exists to avoid duplicates */
+/** Check if source_external_id already exists to avoid duplicates */
 async function existsInDb(externalId: string): Promise<boolean> {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/listings?external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
+    `${SUPABASE_URL}/rest/v1/listings?source_external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
     {
       headers: {
         apikey: SUPABASE_KEY,
@@ -214,8 +265,8 @@ async function existsInDb(externalId: string): Promise<boolean> {
 
 async function upsertToSupabase(listing: MitulaListing, operation: string): Promise<boolean> {
   const mapped = {
-    external_id: listing.external_id,
-    external_url: listing.external_url || null,
+    source_external_id: listing.source_external_id,
+    source_url: listing.source_url || null,
     title: listing.title || `Piso en ${listing.city}`,
     price_eur: listing.price_eur,
     area_m2: listing.area_m2,
@@ -224,11 +275,11 @@ async function upsertToSupabase(listing: MitulaListing, operation: string): Prom
     city: listing.city,
     province: listing.province,
     operation: operation === 'alquiler' ? 'rent' : 'sale',
+    origin: 'external',
     status: 'published',
     is_particular: true,
     is_bank: false,
     source_portal: SOURCE,
-    original_portal_name: ORIGINAL_PORTAL,
     published_at: new Date().toISOString(),
     ranking_score: 50,
   }
@@ -254,7 +305,7 @@ async function upsertToSupabase(listing: MitulaListing, operation: string): Prom
   // Insert cover image if available
   if (listing.image_url) {
     const idRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?external_id=eq.${encodeURIComponent(listing.external_id)}&select=id`,
+      `${SUPABASE_URL}/rest/v1/listings?source_external_id=eq.${encodeURIComponent(listing.source_external_id)}&select=id`,
       {
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
         signal: AbortSignal.timeout(10000),
@@ -273,7 +324,7 @@ async function upsertToSupabase(listing: MitulaListing, operation: string): Prom
           },
           body: JSON.stringify({
             listing_id: rows[0].id,
-            external_url: listing.image_url,
+            source_url: listing.image_url,
             position: 0,
           }),
           signal: AbortSignal.timeout(10000),
@@ -293,14 +344,14 @@ async function scrapePage(
   page: number,
   cityMeta: { province: string; city: string }
 ): Promise<MitulaListing[]> {
-  // Mitula URL pattern for particulares:
-  // https://pisos.mitula.com/pisos/pisos-particular-{ciudad}
-  // https://pisos.mitula.com/pisos/pisos-alquiler-particular-{ciudad}
-  // Pages: append /{page} (1-indexed, page 1 = no suffix)
+  // Mitula URL pattern (confirmed from pisos.mitula.com):
+  // Venta:    https://pisos.mitula.com/pisos/pisos-{ciudad}
+  // Alquiler: https://pisos.mitula.com/pisos/pisos-alquiler-{ciudad}
+  // Pages:    append /{page} (1-indexed, page 1 = no suffix)
   const base =
     operation === 'alquiler'
-      ? `https://pisos.mitula.com/pisos/pisos-alquiler-particular-${citySlug}`
-      : `https://pisos.mitula.com/pisos/pisos-particular-${citySlug}`
+      ? `https://pisos.mitula.com/pisos/pisos-alquiler-${citySlug}`
+      : `https://pisos.mitula.com/pisos/pisos-${citySlug}`
 
   const url = page === 1 ? base : `${base}/${page}`
   console.log(`  [Mitula] Página ${page}: ${url}`)
@@ -347,7 +398,7 @@ async function run() {
 
     for (const listing of listings) {
       try {
-        const alreadyExists = await existsInDb(listing.external_id)
+        const alreadyExists = await existsInDb(listing.source_external_id)
         if (alreadyExists) {
           totalSkipped++
           continue
@@ -355,10 +406,10 @@ async function run() {
         const ok = await upsertToSupabase(listing, operation)
         if (ok) {
           totalInserted++
-          console.log(`    ✅ ${listing.external_id} — ${listing.title.slice(0, 50)}`)
+          console.log(`    ✅ ${listing.source_external_id} — ${listing.title.slice(0, 50)}`)
         }
       } catch (err) {
-        console.warn(`    ⚠️ Error procesando ${listing.external_id}: ${err}`)
+        console.warn(`    ⚠️ Error procesando ${listing.source_external_id}: ${err}`)
       }
       await sleep(200)
     }
@@ -374,3 +425,4 @@ run().catch(err => {
   console.error('[Mitula] ❌ Error fatal:', err)
   process.exit(1)
 })
+

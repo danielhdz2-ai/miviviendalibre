@@ -11,7 +11,7 @@
  *   - Título:  .listing_card__title
  *   - Atribs:  .listing_card__details  /  [data-features]
  *
- * Deduplicación: Verifica external_id antes de insertar.
+ * Deduplicación: Verifica source_external_id antes de insertar.
  * Marca: source='trovit', is_particular=true, is_bank=false
  *
  * Uso: npx tsx scripts/scrapers/trovit_standalone.ts [operation] [city] [maxPages]
@@ -48,8 +48,8 @@ const CITY_MAP: Record<string, { province: string; city: string; slug: string }>
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface TrovitListing {
-  external_id: string
-  external_url: string
+  source_external_id: string
+  source_url: string
   title: string
   price_eur: number | null
   area_m2: number | null
@@ -145,8 +145,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
         seen.add(id)
         const offers = item.offers as Record<string, unknown> | undefined
         results.push({
-          external_id: `trovit_${id}`,
-          external_url: String(item.url ?? ''),
+          source_external_id: `trovit_${id}`,
+          source_url: String(item.url ?? ''),
           title: String(item.name ?? ''),
           price_eur: parseNumber(String(offers?.price ?? item.price ?? '')),
           area_m2: parseNumber(String((item.floorSize as Record<string, unknown>)?.value ?? '')),
@@ -182,7 +182,7 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
 
     // Skip if we already caught this in JSON-LD
     const compositeId = `trovit_${derivedId}`
-    if (results.some(r => r.external_id === compositeId)) {
+    if (results.some(r => r.source_external_id === compositeId)) {
       seen.add(derivedId)
       continue
     }
@@ -208,8 +208,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
     const imgM = chunk.match(/<img[^>]+src="(https?:\/\/[^"]+(?:jpg|jpeg|webp|png)[^"]*)"/i)
 
     results.push({
-      external_id: compositeId,
-      external_url: listingUrl,
+      source_external_id: compositeId,
+      source_url: listingUrl,
       title,
       price_eur: price,
       area_m2: area,
@@ -230,8 +230,8 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
       if (!id || seen.has(id)) continue
       seen.add(id)
       results.push({
-        external_id: `trovit_${id}`,
-        external_url: url,
+        source_external_id: `trovit_${id}`,
+        source_url: url,
         title: '',
         price_eur: null,
         area_m2: null,
@@ -252,7 +252,7 @@ function extractListings(html: string, cityMeta: { province: string; city: strin
 async function existsInDb(externalId: string): Promise<boolean> {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
+      `${SUPABASE_URL}/rest/v1/listings?source_external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
       {
         headers: {
           apikey: SUPABASE_KEY,
@@ -271,8 +271,8 @@ async function existsInDb(externalId: string): Promise<boolean> {
 
 async function upsertToSupabase(listing: TrovitListing, operation: string): Promise<boolean> {
   const mapped = {
-    external_id: listing.external_id,
-    external_url: listing.external_url || null,
+    source_external_id: listing.source_external_id,
+    source_url: listing.source_url || null,
     title: listing.title || `Piso en ${listing.city}`,
     price_eur: listing.price_eur,
     area_m2: listing.area_m2,
@@ -281,11 +281,11 @@ async function upsertToSupabase(listing: TrovitListing, operation: string): Prom
     city: listing.city,
     province: listing.province,
     operation: operation === 'alquiler' ? 'rent' : 'sale',
+    origin: 'external',
     status: 'published',
     is_particular: true,
     is_bank: false,
     source_portal: SOURCE,
-    original_portal_name: ORIGINAL_PORTAL,
     published_at: new Date().toISOString(),
     ranking_score: 50,
   }
@@ -312,7 +312,7 @@ async function upsertToSupabase(listing: TrovitListing, operation: string): Prom
     // Insert image
     if (listing.image_url) {
       const idRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?external_id=eq.${encodeURIComponent(listing.external_id)}&select=id`,
+        `${SUPABASE_URL}/rest/v1/listings?source_external_id=eq.${encodeURIComponent(listing.source_external_id)}&select=id`,
         {
           headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
           signal: AbortSignal.timeout(10000),
@@ -331,7 +331,7 @@ async function upsertToSupabase(listing: TrovitListing, operation: string): Prom
             },
             body: JSON.stringify({
               listing_id: rows[0].id,
-              external_url: listing.image_url,
+              source_url: listing.image_url,
               position: 0,
             }),
             signal: AbortSignal.timeout(10000),
@@ -415,7 +415,7 @@ async function run() {
 
     for (const listing of listings) {
       try {
-        const alreadyExists = await existsInDb(listing.external_id)
+        const alreadyExists = await existsInDb(listing.source_external_id)
         if (alreadyExists) {
           totalSkipped++
           continue
@@ -423,10 +423,10 @@ async function run() {
         const ok = await upsertToSupabase(listing, operation)
         if (ok) {
           totalInserted++
-          console.log(`    ✅ ${listing.external_id} — ${listing.title.slice(0, 50)}`)
+          console.log(`    ✅ ${listing.source_external_id} — ${listing.title.slice(0, 50)}`)
         }
       } catch (err) {
-        console.warn(`    ⚠️ Error procesando ${listing.external_id}: ${err}`)
+        console.warn(`    ⚠️ Error procesando ${listing.source_external_id}: ${err}`)
       }
       await sleep(200)
     }
@@ -442,3 +442,4 @@ run().catch(err => {
   console.error('[Trovit] ❌ Error fatal:', err)
   process.exit(1)
 })
+
