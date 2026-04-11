@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? ''
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY ?? ''
 
 const SYSTEM_PROMPT = `Eres un asistente de búsqueda de pisos para el portal MiviviendaLibre.
 Tu única función es interpretar lo que el usuario busca y devolver un JSON con los filtros de búsqueda.
@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-    // systemInstruction debe ir en getGenerativeModel, no en startChat
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash-lite',
       systemInstruction: SYSTEM_PROMPT,
@@ -93,7 +92,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, filters, raw })
   } catch (err) {
-    console.error('Gemini error:', err)
-    return NextResponse.json({ error: 'Error en la IA' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[chat/route] Gemini error:', msg)
+    return NextResponse.json({ error: `Error en la IA: ${msg}` }, { status: 500 })
   }
 }
