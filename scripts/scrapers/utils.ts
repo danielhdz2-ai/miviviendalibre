@@ -62,6 +62,7 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     source_portal: listing.source_portal,
     source_url: listing.source_url,
     source_external_id: listing.source_external_id,
+    ranking_score: 30,
     published_at: new Date().toISOString(),
   }
 
