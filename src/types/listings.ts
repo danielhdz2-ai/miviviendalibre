@@ -40,6 +40,7 @@ export interface Listing {
   published_at: string | null
   created_at: string
   updated_at: string
+  features: Record<string, string> | null
   listing_images?: ListingImage[]
 }
 

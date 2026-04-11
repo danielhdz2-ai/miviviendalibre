@@ -96,6 +96,11 @@ function extractDetailData(html: string): {
   lat: number | null
   lng: number | null
   floor: string | null
+  areaUseful: number | null
+  ageText: string | null
+  referenceId: string | null
+  orientation: string | null
+  energyCert: string | null
 } {
   // ── Precio ──────────────────────────────────────────────
   let price: number | null = null
@@ -147,6 +152,7 @@ function extractDetailData(html: string): {
   const jsonDescPats = [
     /"texto"\s*:\s*"((?:[^"\\]|\\.)*)"/,
     /"descripcion"\s*:\s*"((?:[^"\\]|\\.)*)"/,
+    /"description"\s*:\s*"((?:[^"\\]|\\.){100,})"/,
     /"body"\s*:\s*"((?:[^"\\]|\\.){100,})"/,
   ]
   for (const pat of jsonDescPats) {
@@ -161,7 +167,22 @@ function extractDetailData(html: string): {
       break
     }
   }
-  // 2) Meta description (limitado a ~300 chars por pisos.com, pero es lo que hay)
+  // 2) JSON-LD structured data
+  if (!description || description.length < 80) {
+    const ldBlocks = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) ?? []
+    for (const block of ldBlocks) {
+      const inner = block.replace(/<\/?script[^>]*>/gi, '')
+      try {
+        const obj = JSON.parse(inner)
+        const candidate = obj.description ?? obj['@graph']?.[0]?.description
+        if (typeof candidate === 'string' && candidate.length > 80) {
+          description = candidate.trim()
+          break
+        }
+      } catch { /* ignorar JSON inválido */ }
+    }
+  }
+  // 3) Meta description (limitado a ~300 chars por pisos.com, pero es lo que hay)
   if (!description || description.length < 50) {
     const metaM = html.match(/<meta[^>]*name="description"[^>]*content="([^"]{20,})"/i)
     if (metaM) {
@@ -184,8 +205,70 @@ function extractDetailData(html: string): {
 
   // ── Planta ───────────────────────────────────────────────
   let floor: string | null = null
-  const floorM = html.match(/[Pp]lanta\s*[:\s]+([^\s<,;"]{1,15})/)
-  if (floorM && /^\d+|Baja|Alta|B\./.test(floorM[1])) floor = floorM[1].trim()
+  const floorPats = [
+    /"planta"\s*:\s*"([^"]{1,20})"/i,
+    /[Pp]lanta\s*[:\s]+([^\s<,;"]{1,15})/,
+  ]
+  for (const p of floorPats) {
+    const m = html.match(p)
+    if (m && /^\d|[Bb]aj|[Aa]lt|[Áá]tic|[Ee]ntr|Semi/.test(m[1])) { floor = m[1].trim(); break }
+  }
+
+  // ── Superficie útil ──────────────────────────────────────
+  let areaUseful: number | null = null
+  const areaUsefulPats = [
+    /superficieUtil(?:es)?"\s*:\s*"?(\d+)/i,
+    /[Ss]uperficie\s+[úu]til\s*[:\s.,]*(\d{2,4})\s*m/,
+  ]
+  for (const p of areaUsefulPats) {
+    const m = html.match(p)
+    if (m) { areaUseful = parseInt(m[1], 10); break }
+  }
+
+  // ── Antigüedad ───────────────────────────────────────────
+  let ageText: string | null = null
+  const agePats = [
+    /"antig[üu]edad"\s*:\s*"([^"]{3,60})"/i,
+    /[Aa]ntig[üu]edad\s*[:\s]+([^<\n"]{3,60}?)(?:\s*[<,]|$)/,
+  ]
+  for (const p of agePats) {
+    const m = html.match(p)
+    if (m) { ageText = m[1].trim(); break }
+  }
+
+  // ── Referencia ───────────────────────────────────────────
+  let referenceId: string | null = null
+  const refPats = [
+    /"referencia"\s*:\s*"([^"]{2,30})"/i,
+    /[Rr]eferencia\s*[:\s]+(\w{3,20})/,
+  ]
+  for (const p of refPats) {
+    const m = html.match(p)
+    if (m) { referenceId = m[1].trim(); break }
+  }
+
+  // ── Orientación ──────────────────────────────────────────
+  let orientation: string | null = null
+  const oriPats = [
+    /"orientaci[oó]n"\s*:\s*"([^"]{2,30})"/i,
+    /[Oo]rientaci[oó]n\s*[:\s]+([^<\n"]{2,30})(?:\s*[<,]|$)/,
+  ]
+  for (const p of oriPats) {
+    const m = html.match(p)
+    if (m) { orientation = m[1].trim(); break }
+  }
+
+  // ── Certificado energético ───────────────────────────────
+  let energyCert: string | null = null
+  const energyPats = [
+    /"cert(?:ificado)?Energ[ée]tico"\s*:\s*"([A-G]|[Ee]n\s+tr[áa]mite)"/i,
+    /[Cc]ertificado\s+energ[ée]tico\s*[:\s]*([A-G]|[Ee]n\s+tr[áa]mite)/,
+    /[Cc]alificaci[oó]n\s+energ[ée]tica\s*[:\s]*([A-G])/,
+  ]
+  for (const p of energyPats) {
+    const m = html.match(p)
+    if (m) { energyCert = m[1].trim(); break }
+  }
 
   // ── Coordenadas ──────────────────────────────────────────
   let lat: number | null = null
@@ -225,7 +308,7 @@ function extractDetailData(html: string): {
     images.push(`https://fotos.imghs.net/xl-wp/${agent}/${rest}`)
   }
 
-  return { price, area, bedrooms, bathrooms, description, images, district: null, postalCode, lat, lng, floor }
+  return { price, area, bedrooms, bathrooms, description, images, district: null, postalCode, lat, lng, floor, areaUseful, ageText, referenceId, orientation, energyCert }
 }
 
 async function scrapeCity(
@@ -332,6 +415,14 @@ async function scrapeCity(
         source_external_id: externalId,
         is_particular: false,
         images: detail.images,
+        features: {
+          ...(detail.floor       ? { planta: detail.floor }           : {}),
+          ...(detail.areaUseful  ? { area_util_m2: String(detail.areaUseful) } : {}),
+          ...(detail.ageText     ? { antiguedad: detail.ageText }     : {}),
+          ...(detail.referenceId ? { referencia: detail.referenceId } : {}),
+          ...(detail.orientation ? { orientacion: detail.orientation } : {}),
+          ...(detail.energyCert  ? { cert_energetico: detail.energyCert } : {}),
+        },
       }
 
       const ok = await upsertListing(listing)

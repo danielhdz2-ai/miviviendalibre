@@ -95,7 +95,7 @@ export default async function ListingDetailPage({ params }: Props) {
 
             {/* Características básicas */}
             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h2 className="font-semibold text-gray-900 mb-4">Características básicas</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">Características</h2>
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
                 {listing.bedrooms != null && (
                   <div className="flex items-start gap-2">
@@ -119,8 +119,62 @@ export default async function ListingDetailPage({ params }: Props) {
                   <div className="flex items-start gap-2">
                     <span className="text-lg leading-none mt-0.5">📐</span>
                     <div>
-                      <dt className="text-gray-500 text-xs">Superficie</dt>
+                      <dt className="text-gray-500 text-xs">Sup. construida</dt>
                       <dd className="font-semibold text-gray-900">{listing.area_m2} m²</dd>
+                    </div>
+                  </div>
+                )}
+                {listing.features?.area_util_m2 && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">📏</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Sup. útil</dt>
+                      <dd className="font-semibold text-gray-900">{listing.features.area_util_m2} m²</dd>
+                    </div>
+                  </div>
+                )}
+                {listing.features?.planta && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🏢</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Planta</dt>
+                      <dd className="font-semibold text-gray-900">{listing.features.planta}</dd>
+                    </div>
+                  </div>
+                )}
+                {listing.features?.antiguedad && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🏚️</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Antigüedad</dt>
+                      <dd className="font-semibold text-gray-900">{listing.features.antiguedad}</dd>
+                    </div>
+                  </div>
+                )}
+                {listing.features?.referencia && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🔖</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Referencia</dt>
+                      <dd className="font-semibold text-gray-900">{listing.features.referencia}</dd>
+                    </div>
+                  </div>
+                )}
+                {listing.features?.orientacion && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">🧭</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Orientación</dt>
+                      <dd className="font-semibold text-gray-900">{listing.features.orientacion}</dd>
+                    </div>
+                  </div>
+                )}
+                {listing.features?.cert_energetico && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg leading-none mt-0.5">⚡</span>
+                    <div>
+                      <dt className="text-gray-500 text-xs">Cert. energético</dt>
+                      <dd className="font-semibold text-gray-900">{listing.features.cert_energetico}</dd>
                     </div>
                   </div>
                 )}

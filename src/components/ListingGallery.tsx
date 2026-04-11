@@ -202,13 +202,13 @@ export default function ListingGallery({ images, title, lat, lng, priceLabel }: 
           {/* Contenido */}
           {lightboxTab === 'fotos' ? (
             <>
-              {/* Imagen grande */}
-              <div className="flex-1 flex items-center justify-center relative px-16 min-h-0">
+              {/* Imagen grande — ocupa todo el espacio disponible */}
+              <div className="flex-1 relative min-h-0 w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={getUrl(images[current])}
                   alt={title}
-                  className="max-w-full max-h-full object-contain rounded-lg select-none"
+                  className="absolute inset-0 w-full h-full object-contain select-none"
                   draggable={false}
                 />
 
@@ -217,7 +217,7 @@ export default function ListingGallery({ images, title, lat, lng, priceLabel }: 
                     <button
                       onClick={prev}
                       aria-label="Anterior"
-                      className="absolute left-3 bg-white/10 hover:bg-white/25 text-white rounded-full w-11 h-11 flex items-center justify-center transition-colors"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full w-11 h-11 flex items-center justify-center transition-colors z-10"
                     >
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -226,7 +226,7 @@ export default function ListingGallery({ images, title, lat, lng, priceLabel }: 
                     <button
                       onClick={next}
                       aria-label="Siguiente"
-                      className="absolute right-3 bg-white/10 hover:bg-white/25 text-white rounded-full w-11 h-11 flex items-center justify-center transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full w-11 h-11 flex items-center justify-center transition-colors z-10"
                     >
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -22,6 +22,7 @@ export interface ScrapedListing {
   source_external_id: string
   is_particular: boolean
   images?: string[]
+  features?: Record<string, string>
 }
 
 const SUPABASE_URL = 'https://ktsdxpmaljiyuwimcugx.supabase.co'
@@ -63,6 +64,7 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     source_external_id: listing.source_external_id,
     ranking_score: 30,
     published_at: new Date().toISOString(),
+    features: listing.features ?? {},
   }
 
   // Intenta INSERT primero
