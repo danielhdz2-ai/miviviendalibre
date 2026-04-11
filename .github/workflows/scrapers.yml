@@ -1,0 +1,175 @@
+name: 🤖 Scrapers Autónomos
+
+on:
+  # Se ejecuta automáticamente cada día a las 4:00 AM UTC (6 AM España)
+  schedule:
+    - cron: '0 4 * * *'
+
+  # También se puede lanzar manualmente desde GitHub → Actions → Run workflow
+  workflow_dispatch:
+    inputs:
+      scraper:
+        description: 'Scraper a ejecutar'
+        required: false
+        default: 'all'
+        type: choice
+        options: [all, tecnocasa, redpiso, monapart]
+      max:
+        description: 'Máx. anuncios por ciudad'
+        required: false
+        default: '50'
+
+env:
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+jobs:
+  # ─── Tecnocasa ──────────────────────────────────────────────────────────────
+  tecnocasa:
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'tecnocasa' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        city: [madrid, barcelona, valencia, sevilla]
+        operation: [sale, rent]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium (si no está en caché)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Instalar dependencias SO de Chromium (siempre)
+        run: npx playwright install-deps chromium
+
+      - name: 🤖 Scraper Tecnocasa — ${{ matrix.city }} (${{ matrix.operation }})
+        run: |
+          MAX=${{ github.event.inputs.max || '50' }}
+          npx tsx scripts/scrapers/tecnocasa.ts \
+            --city ${{ matrix.city }} \
+            --operation ${{ matrix.operation }} \
+            --max $MAX \
+            --headless true
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  # ─── Redpiso ────────────────────────────────────────────────────────────────
+  redpiso:
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'redpiso' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        city: [madrid, barcelona, valencia, sevilla]
+        operation: [sale, rent]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium (si no está en caché)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Instalar dependencias SO de Chromium (siempre)
+        run: npx playwright install-deps chromium
+
+      - name: 🤖 Scraper Redpiso — ${{ matrix.city }} (${{ matrix.operation }})
+        run: |
+          MAX=${{ github.event.inputs.max || '50' }}
+          npx tsx scripts/scrapers/redpiso.ts \
+            --city ${{ matrix.city }} \
+            --operation ${{ matrix.operation }} \
+            --max $MAX \
+            --headless true
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  # ─── Monapart ───────────────────────────────────────────────────────────────
+  monapart:
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'monapart' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        operation: [sale, rent]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium (si no está en caché)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Instalar dependencias SO de Chromium (siempes)
+        run: npx playwright install-deps chromium
+
+      - name: 🤖 Scraper Monapart (${{ matrix.operation }})
+        run: |
+          MAX=${{ github.event.inputs.max || '50' }}
+          npx tsx scripts/scrapers/monapart.ts \
+            --operation ${{ matrix.operation }} \
+            --max $MAX \
+            --headless true
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
+  # ─── Resumen final ──────────────────────────────────────────────────────────
+  resumen:
+    runs-on: ubuntu-latest
+    needs: [tecnocasa, redpiso, monapart]
+    if: always()
+    steps:
+      - name: Resumen de ejecución
+        run: |
+          echo "## 🤖 Scrapers completados" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Estado |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tecnocasa | ${{ needs.tecnocasa.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Redpiso | ${{ needs.redpiso.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Monapart | ${{ needs.monapart.result }} |" >> $GITHUB_STEP_SUMMARY

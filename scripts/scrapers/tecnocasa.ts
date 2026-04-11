@@ -31,22 +31,22 @@ const HEADLESS  = getArg('headless', 'true') !== 'false'
 // ─── URLs por operación ─────────────────────────────────────────────────────
 const BASE_URLS: Record<string, Record<string, string>> = {
   sale: {
-    madrid:    'https://www.tecnocasa.es/venta/pisos/comunidad-de-madrid/madrid.html',
-    barcelona: 'https://www.tecnocasa.es/venta/pisos/cataluna/barcelona.html',
-    valencia:  'https://www.tecnocasa.es/venta/pisos/comunidad-valenciana/valencia.html',
-    sevilla:   'https://www.tecnocasa.es/venta/pisos/andalucia/sevilla.html',
-    zaragoza:  'https://www.tecnocasa.es/venta/pisos/aragon/zaragoza.html',
-    bilbao:    'https://www.tecnocasa.es/venta/pisos/pais-vasco/bilbao.html',
-    malaga:    'https://www.tecnocasa.es/venta/pisos/andalucia/malaga.html',
+    madrid:    'https://www.tecnocasa.es/venta/piso/comunidad-de-madrid/madrid/madrid.html',
+    barcelona: 'https://www.tecnocasa.es/venta/piso/cataluna/barcelona/barcelona.html',
+    valencia:  'https://www.tecnocasa.es/venta/piso/comunidad-valenciana/valencia/valencia.html',
+    sevilla:   'https://www.tecnocasa.es/venta/piso/andalucia/sevilla/sevilla.html',
+    zaragoza:  'https://www.tecnocasa.es/venta/piso/aragon/zaragoza/zaragoza.html',
+    bilbao:    'https://www.tecnocasa.es/venta/piso/pais-vasco/vizcaya/bilbao.html',
+    malaga:    'https://www.tecnocasa.es/venta/piso/andalucia/malaga/malaga.html',
   },
   rent: {
-    madrid:    'https://www.tecnocasa.es/alquiler/pisos/comunidad-de-madrid/madrid.html',
-    barcelona: 'https://www.tecnocasa.es/alquiler/pisos/cataluna/barcelona.html',
-    valencia:  'https://www.tecnocasa.es/alquiler/pisos/comunidad-valenciana/valencia.html',
-    sevilla:   'https://www.tecnocasa.es/alquiler/pisos/andalucia/sevilla.html',
-    zaragoza:  'https://www.tecnocasa.es/alquiler/pisos/aragon/zaragoza.html',
-    bilbao:    'https://www.tecnocasa.es/alquiler/pisos/pais-vasco/bilbao.html',
-    malaga:    'https://www.tecnocasa.es/alquiler/pisos/andalucia/malaga.html',
+    madrid:    'https://www.tecnocasa.es/alquiler/piso/comunidad-de-madrid/madrid/madrid.html',
+    barcelona: 'https://www.tecnocasa.es/alquiler/piso/cataluna/barcelona/barcelona.html',
+    valencia:  'https://www.tecnocasa.es/alquiler/piso/comunidad-valenciana/valencia/valencia.html',
+    sevilla:   'https://www.tecnocasa.es/alquiler/piso/andalucia/sevilla/sevilla.html',
+    zaragoza:  'https://www.tecnocasa.es/alquiler/piso/aragon/zaragoza/zaragoza.html',
+    bilbao:    'https://www.tecnocasa.es/alquiler/piso/pais-vasco/vizcaya/bilbao.html',
+    malaga:    'https://www.tecnocasa.es/alquiler/piso/andalucia/malaga/malaga.html',
   },
 }
 
@@ -104,7 +104,11 @@ async function run() {
         const allLinks = await page.$$eval('a[href]', links =>
           (links as HTMLAnchorElement[]).map(a => a.href)
         )
-        const filtered = allLinks.filter(h => /tecnocasa\.es\/.+\d{4,}/.test(h) && !h.includes('#'))
+        const filtered = allLinks.filter(h =>
+          h.startsWith('http') &&
+          /tecnocasa\.es\/.+\/\d{4,}\.html/.test(h) &&
+          !h.includes('#')
+        )
         console.log(`  ↳ 0 links con selector principal, ${filtered.length} candidatos alternativos`)
         if (filtered.length === 0) break
         listingLinks.push(...filtered.slice(0, 20))
@@ -154,7 +158,9 @@ async function scrapeListing(
   await page.route('**/*.{gif,svg,woff,woff2,mp4,webm}', r => r.abort())
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 })
+    // Tecnocasa es SPA — esperar a que cargue el JS
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 })
+    await sleep(1000)
 
     // Extraer datos estructurados (JSON-LD si existe)
     const jsonLd = await page.$eval('script[type="application/ld+json"]', el => el.textContent).catch(() => null)
