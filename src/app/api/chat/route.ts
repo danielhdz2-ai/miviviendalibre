@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY ?? ''
+// Leemos la key en runtime (no en module-load) para que Vercel la resuelva correctamente
+function getApiKey(): string {
+  return (
+    (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY ?? '')
+  ).trim()
+}
 
 const SYSTEM_PROMPT = `Eres un asistente de búsqueda de pisos para el portal MiviviendaLibre.
 Tu única función es interpretar lo que el usuario busca y devolver un JSON con los filtros de búsqueda.
@@ -33,8 +38,10 @@ Si el usuario pregunta algo que no es una búsqueda de piso, devuelve:
 {"error":"Solo puedo ayudarte a buscar pisos y casas en España."}`
 
 export async function POST(req: NextRequest) {
+  const GEMINI_API_KEY = getApiKey()
   if (!GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'Chat IA no configurado' }, { status: 503 })
+    console.error('[chat/route] API key no encontrada. Variables disponibles:', Object.keys(process.env).filter(k => k.toLowerCase().includes('gemini') || k.toLowerCase().includes('google_ai')))
+    return NextResponse.json({ error: 'Chat IA no configurado: falta GOOGLE_AI_API_KEY en variables de entorno' }, { status: 503 })
   }
 
   let body: { messages?: Array<{ role: string; content: string }> }
@@ -60,7 +67,7 @@ export async function POST(req: NextRequest) {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
+      model: 'gemini-2.0-flash',
       systemInstruction: SYSTEM_PROMPT,
     })
 
