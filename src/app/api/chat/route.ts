@@ -59,15 +59,24 @@ export async function POST(req: NextRequest) {
 
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-
-    const chat = model.startChat({
-      history: recent.slice(0, -1).map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      })),
+    // systemInstruction debe ir en getGenerativeModel, no en startChat
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: SYSTEM_PROMPT,
     })
+
+    // El historial de Gemini debe empezar con rol 'user' y alternar user/model.
+    // Filtramos el mensaje de bienvenida del asistente que encabeza la lista.
+    const rawHistory = recent.slice(0, -1).map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }))
+    // Descartar entradas iniciales con rol 'model' (la bienvenida del widget)
+    while (rawHistory.length > 0 && rawHistory[0].role === 'model') {
+      rawHistory.shift()
+    }
+
+    const chat = model.startChat({ history: rawHistory })
 
     const result = await chat.sendMessage(lastUser.content)
     const raw = result.response.text().trim()
