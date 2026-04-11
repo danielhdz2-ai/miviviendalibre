@@ -33,6 +33,24 @@ function formatPrice(price: number | null, operation: string): string {
   return operation === 'rent' ? `${formatted}/mes` : formatted
 }
 
+async function geocodeCity(district: string | null, city: string | null, province: string | null): Promise<{ lat: number; lng: number } | null> {
+  const parts = [district, city, province, 'España'].filter(Boolean)
+  if (parts.length < 2) return null
+  const q = encodeURIComponent(parts.join(', '))
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=es`,
+      { headers: { 'User-Agent': 'miviviendalibre.com/1.0' }, next: { revalidate: 86400 } }
+    )
+    if (!res.ok) return null
+    const data = await res.json() as Array<{ lat: string; lon: string }>
+    if (!data[0]) return null
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+  } catch {
+    return null
+  }
+}
+
 export default async function ListingDetailPage({ params }: Props) {
   const { id } = await params
   const listing = await getListingById(id)
@@ -44,6 +62,21 @@ export default async function ListingDetailPage({ params }: Props) {
     : false
 
   const images = listing.listing_images ?? []
+
+  // Coordenadas: usar las del listing si existen, si no geocodificar por ciudad/barrio
+  let mapLat = listing.lat
+  let mapLng = listing.lng
+  let mapZoom = 15
+  let mapCircleRadius = 200
+  if (!mapLat || !mapLng) {
+    const geocoded = await geocodeCity(listing.district, listing.city, listing.province)
+    if (geocoded) {
+      mapLat = geocoded.lat
+      mapLng = geocoded.lng
+      mapZoom = 13
+      mapCircleRadius = 800
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -218,17 +251,21 @@ export default async function ListingDetailPage({ params }: Props) {
             </div>
 
             {/* Mapa */}
-            {listing.lat && listing.lng && (
+            {mapLat && mapLng && (
               <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
                 <h2 className="font-semibold text-gray-900 mb-3">Ubicación aproximada</h2>
                 <p className="text-xs text-gray-400 mb-3">
-                  Se muestra una zona aproximada para proteger la privacidad del propietario.
+                  {listing.lat && listing.lng
+                    ? 'Se muestra una zona aproximada para proteger la privacidad del propietario.'
+                    : 'Ubicación orientativa basada en la ciudad/barrio indicados.'}
                 </p>
                 <MapWrapper
-                  lat={listing.lat}
-                  lng={listing.lng}
+                  lat={mapLat}
+                  lng={mapLng}
                   title={listing.title}
                   price={formatPrice(listing.price_eur, listing.operation)}
+                  zoom={mapZoom}
+                  circleRadius={mapCircleRadius}
                 />
                 <p className="text-xs text-gray-400 mt-2">
                   📍 {[listing.district, listing.city, listing.province].filter(Boolean).join(', ')}

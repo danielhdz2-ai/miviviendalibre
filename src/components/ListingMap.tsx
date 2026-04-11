@@ -7,9 +7,11 @@ interface MapProps {
   lng: number
   title: string
   price?: string
+  zoom?: number
+  circleRadius?: number
 }
 
-export default function ListingMap({ lat, lng, title, price }: MapProps) {
+export default function ListingMap({ lat, lng, title, price, zoom = 15, circleRadius = 200 }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<unknown>(null)
 
@@ -45,7 +47,7 @@ export default function ListingMap({ lat, lng, title, price }: MapProps) {
       if (!mapRef.current) return
       const map = L.map(mapRef.current, {
         center: [lat, lng],
-        zoom: 15,
+        zoom: zoom,
         zoomControl: true,
         scrollWheelZoom: false,
       })
@@ -60,7 +62,7 @@ export default function ListingMap({ lat, lng, title, price }: MapProps) {
         color: '#c9962a',
         fillColor: '#c9962a',
         fillOpacity: 0.1,
-        radius: 200,
+        radius: circleRadius,
         weight: 2,
       }).addTo(map)
 
@@ -85,7 +87,7 @@ export default function ListingMap({ lat, lng, title, price }: MapProps) {
         mapInstanceRef.current = null
       }
     }
-  }, [lat, lng, title, price])
+  }, [lat, lng, title, price, zoom, circleRadius])
 
   return (
     <>
