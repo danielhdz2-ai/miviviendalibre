@@ -35,11 +35,10 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     process.exit(1)
   }
 
-  const headers = {
+  const baseHeaders = {
     apikey: SUPABASE_SERVICE_KEY,
     Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
     'Content-Type': 'application/json',
-    Prefer: 'resolution=ignore-duplicates,return=representation',
   }
 
   const body = {
@@ -66,34 +65,61 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     published_at: new Date().toISOString(),
   }
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
+  // Intenta INSERT primero
+  const postRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
     method: 'POST',
-    headers,
+    headers: { ...baseHeaders, Prefer: 'return=representation' },
     body: JSON.stringify(body),
   })
 
-  if (!res.ok) {
-    const err = await res.text()
-    // 23505 = duplicate key — listing ya existe, no es un error real
-    if (err.includes('"23505"')) return true
-    console.error(`  ↳ Error upsert: ${err.slice(0, 120)}`)
-    return false
+  let listingId: string | null = null
+
+  if (postRes.ok) {
+    // Nuevo listing creado
+    const data = await postRes.json() as Array<{ id: string }>
+    listingId = data[0]?.id ?? null
+  } else {
+    const err = await postRes.text()
+    if (err.includes('"23505"')) {
+      // Ya existe — buscar su id y hacer PATCH para actualizar datos
+      const getRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings` +
+        `?source_portal=eq.${encodeURIComponent(listing.source_portal)}` +
+        `&source_external_id=eq.${encodeURIComponent(listing.source_external_id ?? '')}` +
+        `&select=id`,
+        { headers: baseHeaders }
+      )
+      if (getRes.ok) {
+        const existing = await getRes.json() as Array<{ id: string }>
+        listingId = existing[0]?.id ?? null
+      }
+      if (listingId) {
+        await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+          method: 'PATCH',
+          headers: { ...baseHeaders, Prefer: 'return=minimal' },
+          body: JSON.stringify(body),
+        })
+        // Borrar imágenes antiguas para insertar las nuevas
+        await fetch(`${SUPABASE_URL}/rest/v1/listing_images?listing_id=eq.${listingId}`, {
+          method: 'DELETE',
+          headers: { ...baseHeaders, Prefer: 'return=minimal' },
+        })
+      }
+    } else {
+      console.error(`  ↳ Error upsert: ${err.slice(0, 120)}`)
+      return false
+    }
   }
 
-  // Si hay imágenes, insertarlas en listing_images
-  if (listing.images?.length) {
-    const data = await res.json() as Array<{ id: string }>
-    const listingId = data[0]?.id
-    if (listingId) {
-      await insertImages(listingId, listing.images, headers)
-    }
+  if (listingId && listing.images?.length) {
+    await insertImages(listingId, listing.images, baseHeaders)
   }
 
   return true
 }
 
 async function insertImages(listingId: string, images: string[], headers: Record<string, string>) {
-  const rows = images.slice(0, 10).map((url, i) => ({
+  const rows = images.map((url, i) => ({
     listing_id: listingId,
     external_url: url,
     position: i,
