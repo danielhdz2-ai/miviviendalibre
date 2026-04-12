@@ -83,7 +83,24 @@ export default function SearchResults({
         {/* Listado / Mapa */}
         {listings.length > 0 ? (
           vista === 'mapa' ? (
-            <MapSearchView listings={listings} total={total} ciudad={currentParams.ciudad} />
+            <MapSearchView
+              listings={listings}
+              total={total}
+              ciudad={currentParams.ciudad}
+              searchQuery={(() => {
+                const p = new URLSearchParams()
+                if (currentParams.ciudad) p.set('ciudad', currentParams.ciudad)
+                if (currentParams.operacion) p.set('operacion', currentParams.operacion)
+                if (currentParams.soloParticulares) p.set('solo_particulares', 'true')
+                if (currentParams.precioMin) p.set('precio_min', String(currentParams.precioMin))
+                if (currentParams.precioMax) p.set('precio_max', String(currentParams.precioMax))
+                if (currentParams.habitaciones != null) p.set('hab', String(currentParams.habitaciones))
+                if (currentParams.banosMin) p.set('banos', String(currentParams.banosMin))
+                if (currentParams.areaMin) p.set('area_min', String(currentParams.areaMin))
+                if (currentParams.areaMax) p.set('area_max', String(currentParams.areaMax))
+                return p.toString()
+              })()}
+            />
           ) : vista === 'lista' ? (
             <div className="flex flex-col gap-3">
               {listings.map((listing) => (

@@ -47,22 +47,33 @@ const CIUDAD_COORDS: Record<string, [number, number]> = {
   'san sebastián': [43.3183, -1.9812],
 }
 
+interface MapPin {
+  id: string
+  lat: number
+  lng: number
+  price_eur: number | null
+  operation: string
+  city: string | null
+}
+
 interface Props {
   listings: Listing[]
   total?: number
   ciudad?: string
+  searchQuery?: string
 }
 
-export default function MapSearchView({ listings, total, ciudad }: Props) {
+export default function MapSearchView({ listings, total, ciudad, searchQuery }: Props) {
   const mapElRef = useRef<HTMLDivElement>(null)
   const mapObjRef = useRef<ReturnType<typeof import('leaflet')['map']> | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<Record<string, any>>({})
+  const allPinMarkersRef = useRef<ReturnType<typeof import('leaflet')['marker']>[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef<Record<string, HTMLAnchorElement | null>>({})
 
-  // Añadir coords de ciudad como fallback para listings sin lat/lng exacto
+  // Añadir coords de ciudad como fallback para listings sin lat/lng exacto (solo para la lista)
   const listingsWithCoords = listings.map((l) => {
     if (l.lat != null && l.lng != null) return l
     const cityKey = l.city?.toLowerCase().trim() ?? ''
@@ -113,6 +124,7 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
       maxZoom: 18,
     }).addTo(map)
 
+    // Marcadores interactivos para los 24 de la página actual
     withCoords.forEach((listing) => {
       const icon = createPriceIcon(L, listing, false)
       const marker = L.marker([listing.lat!, listing.lng!], { icon, opacity: (listing as Record<string, unknown>)._cityFallback ? 0.7 : 1 })
@@ -138,10 +150,40 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
     }
 
     mapObjRef.current = map
+
+    // Cargar TODOS los pins del mapa vía API (sin límite de página)
+    if (searchQuery) {
+      fetch(`/api/pisos/map-pins?${searchQuery}`)
+        .then((r) => r.json())
+        .then(({ pins }: { pins: MapPin[] }) => {
+          if (!mapObjRef.current) return
+          // Marcar los ids que ya tienen marcador interactivo
+          const interactiveIds = new Set(withCoords.map((l) => l.id))
+          const dotIcon = L.divIcon({
+            html: `<div style="width:10px;height:10px;background:#c9962a;border:2px solid white;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>`,
+            className: '',
+            iconAnchor: [5, 5],
+          })
+          pins.forEach((pin) => {
+            if (interactiveIds.has(pin.id)) return // ya tiene precio label
+            const m = L.marker([pin.lat, pin.lng], { icon: dotIcon, opacity: 0.85 })
+            m.addTo(map)
+            allPinMarkersRef.current.push(m)
+          })
+          // Si no había ciudad para hacer zoom, hacer fitBounds con todos los pins
+          if (!cityCoords && pins.length > 0 && withCoords.length === 0) {
+            const allBounds = L.latLngBounds(pins.map((p) => [p.lat, p.lng]))
+            map.fitBounds(allBounds, { padding: [40, 40], maxZoom: 13 })
+          }
+        })
+        .catch(() => { /* silenciar errores de red */ })
+    }
+
     return () => {
       map.remove()
       mapObjRef.current = null
       markersRef.current = {}
+      allPinMarkersRef.current = []
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -170,7 +212,7 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
       {/* ── Columna 2: Lista de inmuebles ───────────────────────── */}
       <div
         ref={listRef}
-        className="w-80 xl:w-[380px] shrink-0 overflow-y-auto flex flex-col gap-2 p-3 bg-white border-r border-gray-100"
+        className="w-96 xl:w-[440px] shrink-0 overflow-y-auto flex flex-col gap-2 p-3 bg-white border-r border-gray-100"
       >
         {/* Contador */}
         <p className="text-xs text-gray-500 font-medium px-1 pb-1 border-b border-gray-100">
@@ -201,7 +243,7 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
                 onMouseLeave={() => setActiveId(null)}
               >
                 {/* Imagen — se estira al alto del contenido */}
-                <div className="w-28 shrink-0 self-stretch bg-gray-100 overflow-hidden relative" style={{ minHeight: '90px' }}>
+                <div className="w-36 shrink-0 self-stretch bg-gray-100 overflow-hidden relative" style={{ minHeight: '110px' }}>
                   {imgUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imgUrl} alt="" className="w-full h-full object-cover absolute inset-0" />
