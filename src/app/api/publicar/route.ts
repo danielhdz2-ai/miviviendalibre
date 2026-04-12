@@ -9,6 +9,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
   }
 
+  // ── Límite: máximo 2 anuncios activos ──────────────────────────────────────
+  const { count: activeCount, error: countError } = await supabase
+    .from('listings')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_user_id', user.id)
+    .in('status', ['published', 'active'])
+
+  if (!countError && (activeCount ?? 0) >= 2) {
+    return NextResponse.json(
+      {
+        error: 'limit_reached',
+        message: 'Has alcanzado el límite de 2 anuncios gratuitos. Contrata el Plan Profesional para publicar sin límites.',
+      },
+      { status: 403 },
+    )
+  }
+
   const body = await req.json()
   const { operation, province, city, district, postal_code, price, bedrooms, bathrooms, area, title, description } = body
 
