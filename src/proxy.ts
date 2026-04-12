@@ -29,9 +29,13 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Proteger /mi-cuenta y /publicar — redirigir a login si no autenticado
+  // NOTA: /publicar-anuncio es pública, solo /publicar (el wizard) requiere auth
   const pathname = request.nextUrl.pathname
   const protectedPaths = ['/mi-cuenta', '/publicar']
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
+  const publicPaths = ['/publicar-anuncio']
+  const isProtected =
+    protectedPaths.some((p) => pathname.startsWith(p)) &&
+    !publicPaths.some((p) => pathname.startsWith(p))
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
