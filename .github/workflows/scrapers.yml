@@ -15,7 +15,7 @@ on:
         required: false
         default: 'all'
         type: choice
-        options: [all, tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda, mitula, trovit, kelify]
+        options: [all, tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda, kelify]
       max:
         description: 'Máx. anuncios por ciudad'
         required: false
@@ -361,72 +361,6 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
-  # ─── 💎 Robot A: Mitula Standalone (Particulares) ─────────────────────────
-  job_mitula:
-    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'mitula' }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 2
-      matrix:
-        city: [madrid, barcelona, valencia, sevilla, zaragoza, malaga]
-        operation: [venta, alquiler]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Instalar dependencias
-        working-directory: miviviendalibre
-        run: npm ci
-
-      - name: 💎 Mitula Particulares — ${{ matrix.city }} (${{ matrix.operation }})
-        working-directory: miviviendalibre
-        run: |
-          npx --yes tsx scripts/scrapers/mitula_standalone.ts \
-            ${{ matrix.operation }} \
-            ${{ matrix.city }} \
-            5
-        env:
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-
-  # ─── 💎 Robot B: Trovit Standalone (Particulares) ─────────────────────────
-  job_trovit:
-    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'trovit' }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 2
-      matrix:
-        city: [madrid, barcelona, valencia, sevilla, zaragoza, malaga]
-        operation: [venta, alquiler]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Instalar dependencias
-        working-directory: miviviendalibre
-        run: npm ci
-
-      - name: 💎 Trovit Particulares — ${{ matrix.city }} (${{ matrix.operation }})
-        working-directory: miviviendalibre
-        run: |
-          npx --yes tsx scripts/scrapers/trovit_standalone.ts \
-            ${{ matrix.operation }} \
-            ${{ matrix.city }} \
-            5
-        env:
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-
   # ─── 💎 Robot C: Kelify Standalone (Particulares) ─────────────────────────
   job_kelify:
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'kelify' }}
@@ -463,7 +397,7 @@ jobs:
   # ─── Resumen final ──────────────────────────────────────────────────────────
   resumen:
     runs-on: ubuntu-latest
-    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda, job_mitula, job_trovit, job_kelify]
+    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda, job_kelify]
     if: always()
     steps:
       - name: Resumen de ejecución
@@ -481,8 +415,6 @@ jobs:
           echo "| 🔥 Milanuncios | ${{ needs.milanuncios.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏦 Solvia | ${{ needs.solvia.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏦 Aliseda | ${{ needs.aliseda.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 💎 Mitula | ${{ needs.job_mitula.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 💎 Trovit | ${{ needs.job_trovit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 💎 Kelify | ${{ needs.job_kelify.result }} |" >> $GITHUB_STEP_SUMMARY
 
 
