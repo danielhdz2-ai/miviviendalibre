@@ -6,9 +6,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-gradient-to-br from-[#fef9e8] to-white flex flex-col">
       {/* Mini header */}
       <header className="p-5">
-        <Link href="/" className="flex items-center gap-2 w-fit">
-          <span className="text-2xl font-black text-[#1e3a5f] tracking-tight">IN</span>
-          <span className="text-base font-bold text-[#1e3a5f]">Inmonest</span>
+        <Link href="/" className="flex items-center w-fit">
+          <span className="text-2xl font-black tracking-tight"><span className="text-[#1a0d00]">Inmo</span><span className="text-[#c9962a]">nest</span></span>
         </Link>
       </header>
 

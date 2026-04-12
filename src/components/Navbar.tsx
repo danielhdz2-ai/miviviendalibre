@@ -16,10 +16,9 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-1.5">
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e3a5f] text-white font-black text-sm">IN</span>
-            <span className="text-xl font-extrabold tracking-tight leading-none text-[#1e3a5f]">
-              Inmonest
+          <Link href="/" className="flex items-center">
+            <span className="text-xl font-extrabold tracking-tight leading-none">
+              <span className="text-[#1a0d00]">Inmo</span><span className="text-[#c9962a]">nest</span>
             </span>
           </Link>
 
