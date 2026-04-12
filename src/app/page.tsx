@@ -135,44 +135,45 @@ export default function Home() {
 
       {/* ── CTA publicar ───────────────────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a0d00] via-[#2e1900] to-[#42300a] shadow-2xl">
-          {/* Imagen de fondo */}
-          <div className="absolute inset-0">
-            <Image
-              src="/keys.jpg"
-              alt="Llaves de casa"
-              fill
-              className="object-cover opacity-30"
-              sizes="(max-width: 1024px) 100vw, 1024px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1a0d00]/90 via-[#2e1900]/70 to-transparent" />
-          </div>
-
-          {/* Contenido */}
-          <div className="relative z-10 px-8 sm:px-12 py-14 max-w-xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#c9962a]/20 text-[#f4c94a] text-xs font-semibold border border-[#c9962a]/30 mb-5">
+        <div className="relative overflow-hidden rounded-3xl shadow-xl bg-[#1a0d00] min-h-[300px] flex">
+          {/* Columna izquierda — texto */}
+          <div className="relative z-10 flex flex-col justify-center px-8 sm:px-12 py-12 flex-1">
+            <span className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-full bg-[#c9962a]/25 text-[#f4c94a] text-xs font-semibold border border-[#c9962a]/40 mb-5">
               🏠 Para propietarios
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-snug">
               ¿Tienes un piso para<br />alquilar o vender?
             </h2>
-            <p className="mt-3 text-white/70 text-base leading-relaxed">
+            <p className="mt-3 text-white/65 text-sm sm:text-base leading-relaxed max-w-sm">
               Crea tu anuncio en menos de 5 minutos. Nuestra IA genera el título y la descripción por ti.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="mt-7 flex flex-col sm:flex-row gap-3">
               <Link
                 href="/publicar"
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-full bg-[#c9962a] text-white font-semibold hover:bg-[#a87a20] transition-colors text-sm shadow-lg shadow-[#c9962a]/30"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#c9962a] text-white font-semibold hover:bg-[#a87a20] transition-colors text-sm shadow-lg shadow-[#c9962a]/40"
               >
                 Publicar mi anuncio gratis →
               </Link>
               <Link
                 href="/vender-casa"
-                className="inline-flex items-center justify-center px-6 py-3.5 rounded-full border border-white/20 text-white/85 font-medium hover:bg-white/10 hover:border-white/40 transition-colors text-sm backdrop-blur-sm"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/25 text-white/80 font-medium hover:bg-white/10 transition-colors text-sm"
               >
                 Buscar agencia inmobiliaria
               </Link>
             </div>
+          </div>
+
+          {/* Columna derecha — imagen */}
+          <div className="hidden lg:block relative w-[420px] shrink-0">
+            <Image
+              src="/keys.jpg"
+              alt="Llaves de casa"
+              fill
+              className="object-cover"
+              sizes="420px"
+            />
+            {/* Fade hacia la izquierda para fusionar con el fondo */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1a0d00] via-[#1a0d00]/20 to-transparent" />
           </div>
         </div>
       </section>
