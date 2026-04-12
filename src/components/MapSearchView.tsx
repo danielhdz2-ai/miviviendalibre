@@ -20,6 +20,23 @@ function formatPriceFull(price: number | null, operation: string): string {
   return operation === 'rent' ? `${f} €/mes` : `${f} €`
 }
 
+// Genera HTML del badge de precio centrado en el pin del mapa
+// iconAnchor:[0,0] + translate(-50%,-50%) = centrado exacto en la coordenada
+function priceIconHtml(label: string, active: boolean, small = false): string {
+  const bg = active ? '#c9962a' : '#ffffff'
+  const color = active ? '#ffffff' : '#111827'
+  const border = '#c9962a'
+  const shadow = active
+    ? '0 3px 12px rgba(201,150,42,0.55)'
+    : '0 2px 6px rgba(0,0,0,0.22)'
+  const fs = small ? '10px' : '12px'
+  const fw = '800'
+  const px = small ? '7px' : '10px'
+  const py = small ? '2px' : '4px'
+  const br = '20px'
+  return `<div style="display:inline-block;background:${bg};color:${color};border:2px solid ${border};font-size:${fs};font-weight:${fw};padding:${py} ${px};border-radius:${br};white-space:nowrap;box-shadow:${shadow};font-family:-apple-system,system-ui,sans-serif;cursor:pointer;transform:translate(-50%,-50%);line-height:1.3;">${label}</div>`
+}
+
 // Coordenadas de ciudades principales para zoom rápido
 const CIUDAD_COORDS: Record<string, [number, number]> = {
   madrid: [40.4168, -3.7038],
@@ -86,14 +103,22 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function createPriceIcon(L: any, listing: Listing, isActive: boolean) {
     const label = formatPriceShort(listing.price_eur, listing.operation)
-    const bg = isActive ? '#c9962a' : 'white'
-    const color = isActive ? 'white' : '#374151'
-    const border = isActive ? '#a87a20' : '#d1d5db'
-    const shadow = isActive ? '0 2px 8px rgba(201,150,42,0.5)' : '0 1px 4px rgba(0,0,0,0.18)'
     return L.divIcon({
-      html: `<div style="background:${bg};color:${color};border:1.5px solid ${border};font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;box-shadow:${shadow};font-family:sans-serif;cursor:pointer;">${label}</div>`,
+      html: priceIconHtml(label, isActive, false),
       className: '',
-      iconAnchor: [24, 16],
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function createSecondaryPriceIcon(L: any, pin: MapPin) {
+    const label = formatPriceShort(pin.price_eur, pin.operation)
+    return L.divIcon({
+      html: priceIconHtml(label, false, true),
+      className: '',
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
     })
   }
 
@@ -127,7 +152,29 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
     // Marcadores interactivos para los 24 de la página actual
     withCoords.forEach((listing) => {
       const icon = createPriceIcon(L, listing, false)
-      const marker = L.marker([listing.lat!, listing.lng!], { icon, opacity: (listing as Record<string, unknown>)._cityFallback ? 0.7 : 1 })
+      const marker = L.marker([listing.lat!, listing.lng!], {
+        icon,
+        opacity: (listing as Record<string, unknown>)._cityFallback ? 0.7 : 1,
+        zIndexOffset: 100,
+      })
+      const imgUrl = listing.listing_images?.[0]?.storage_path ?? listing.listing_images?.[0]?.external_url ?? null
+      const priceFull = formatPriceFull(listing.price_eur, listing.operation)
+      const opLabel = listing.operation === 'rent' ? 'Alquiler' : 'Venta'
+      const opColor = listing.operation === 'rent' ? '#0284c7' : '#ea580c'
+      marker.bindPopup(
+        `<div style="font-family:-apple-system,system-ui,sans-serif;width:200px;overflow:hidden;border-radius:8px;">
+          ${imgUrl ? `<img src="${imgUrl}" alt="" style="width:100%;height:110px;object-fit:cover;display:block;margin:-10px -20px 0;width:calc(100% + 40px);" />` : ''}
+          <div style="padding:${imgUrl ? '8px 0 0' : '0'};">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-weight:800;font-size:15px;color:#111827;">${priceFull}</span>
+              <span style="font-size:10px;font-weight:700;background:${opColor};color:white;padding:2px 6px;border-radius:20px;">${opLabel}</span>
+            </div>
+            <p style="margin:4px 0 0;font-size:11px;color:#6b7280;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${listing.title}</p>
+            ${listing.bedrooms != null || listing.area_m2 != null ? `<p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">${[listing.bedrooms != null ? `🛏 ${listing.bedrooms} hab` : null, listing.area_m2 != null ? `📐 ${listing.area_m2}m²` : null].filter(Boolean).join(' · ')}</p>` : ''}
+          </div>
+        </div>`,
+        { offset: [0, -4], maxWidth: 220 }
+      )
       marker.on('click', () => {
         setActiveId(listing.id)
         const el = cardRefs.current[listing.id]
@@ -159,14 +206,10 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
           if (!mapObjRef.current) return
           // Marcar los ids que ya tienen marcador interactivo
           const interactiveIds = new Set(withCoords.map((l) => l.id))
-          const dotIcon = L.divIcon({
-            html: `<div style="width:10px;height:10px;background:#c9962a;border:2px solid white;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>`,
-            className: '',
-            iconAnchor: [5, 5],
-          })
           pins.forEach((pin) => {
-            if (interactiveIds.has(pin.id)) return // ya tiene precio label
-            const m = L.marker([pin.lat, pin.lng], { icon: dotIcon, opacity: 0.85 })
+            if (interactiveIds.has(pin.id)) return // ya tiene precio label interactivo
+            const icon = createSecondaryPriceIcon(L, pin)
+            const m = L.marker([pin.lat, pin.lng], { icon, opacity: 0.85, zIndexOffset: -100 })
             m.addTo(map)
             allPinMarkersRef.current.push(m)
           })
@@ -232,67 +275,99 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
                 key={listing.id}
                 href={`/pisos/${listing.id}`}
                 ref={(el) => { cardRefs.current[listing.id] = el }}
-                className={`flex bg-white rounded-xl overflow-hidden border transition-all hover:shadow-md ${
+                className={`flex bg-white rounded-xl overflow-hidden border transition-all duration-150 hover:shadow-lg ${
                   isActive
-                    ? 'border-[#c9962a] shadow-[#c9962a]/20 shadow-md ring-1 ring-[#c9962a]/30'
+                    ? 'border-[#c9962a] shadow-[#c9962a]/30 shadow-lg ring-1 ring-[#c9962a]/40'
                     : listing.is_bank
-                    ? 'border-blue-200 hover:border-blue-300'
-                    : 'border-gray-100 hover:border-gray-200'
+                    ? 'border-blue-200 hover:border-blue-300 shadow-sm'
+                    : 'border-gray-100 hover:border-[#c9962a]/40 shadow-sm'
                 }`}
                 onMouseEnter={() => { if (listingsWithCoords.find(l => l.id === listing.id)?.lat != null) setActiveId(listing.id) }}
                 onMouseLeave={() => setActiveId(null)}
               >
-                {/* Imagen — se estira al alto del contenido */}
-                <div className="w-36 shrink-0 self-stretch bg-gray-100 overflow-hidden relative" style={{ minHeight: '110px' }}>
+                {/* Imagen */}
+                <div className="w-[130px] shrink-0 self-stretch bg-gray-100 overflow-hidden relative" style={{ minHeight: '115px' }}>
                   {imgUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imgUrl} alt="" className="w-full h-full object-cover absolute inset-0" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full h-full absolute inset-0 flex items-center justify-center bg-gray-50">
                       <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       </svg>
                     </div>
                   )}
+                  {/* Badge operación sobre la imagen */}
+                  <span className={`absolute bottom-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                    listing.operation === 'rent' ? 'bg-sky-600 text-white' : 'bg-orange-500 text-white'
+                  }`}>
+                    {listing.operation === 'rent' ? 'ALQ' : 'VENTA'}
+                  </span>
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 px-3 py-2 min-w-0">
-                  {/* Fila superior: precio + badge operación */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-gray-900 text-sm leading-tight">
+                <div className="flex-1 px-3 py-2.5 min-w-0 flex flex-col justify-between">
+                  {/* Precio */}
+                  <div>
+                    <p className={`font-extrabold text-base leading-tight ${isActive ? 'text-[#c9962a]' : 'text-gray-900'}`}>
                       {formatPriceFull(listing.price_eur, listing.operation)}
-                    </span>
-                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                      listing.operation === 'rent' ? 'bg-sky-100 text-sky-700' : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {listing.operation === 'rent' ? 'ALQ' : 'VENTA'}
-                    </span>
+                    </p>
+
+                    {/* Título */}
+                    <p className="text-xs text-gray-600 line-clamp-2 leading-snug mt-0.5">
+                      {listing.title}
+                    </p>
                   </div>
-                  {/* Título */}
-                  <p className="text-xs text-gray-600 line-clamp-2 leading-snug mt-1">
-                    {listing.title}
-                  </p>
-                  {/* Iconos: habs · m² · ciudad */}
-                  <div className="flex gap-2 mt-1.5 text-xs text-gray-400 flex-wrap items-center">
-                    {listing.bedrooms != null && (
-                      <span>🛏 {listing.bedrooms === 0 ? 'Estudio' : listing.bedrooms}</span>
+
+                  {/* Stats */}
+                  <div className="mt-1.5">
+                    <div className="flex gap-2.5 text-xs text-gray-500 flex-wrap">
+                      {listing.bedrooms != null && (
+                        <span className="flex items-center gap-0.5">
+                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                          </svg>
+                          {listing.bedrooms === 0 ? 'Est.' : `${listing.bedrooms} hab`}
+                        </span>
+                      )}
+                      {listing.bathrooms != null && (
+                        <span className="flex items-center gap-0.5">
+                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          {listing.bathrooms} baño{listing.bathrooms !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {listing.area_m2 != null && (
+                        <span className="flex items-center gap-0.5">
+                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                          {listing.area_m2} m²
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Localización */}
+                    {listing.city && (
+                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                        📍 {[listing.district, listing.city].filter(Boolean).join(', ')}
+                      </p>
                     )}
-                    {listing.area_m2 && <span>📐 {listing.area_m2}m²</span>}
-                    {listing.city && <span className="truncate">📍 {listing.city}</span>}
-                  </div>
-                  {/* Badges */}
-                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                    {listing.is_particular && (
-                      <span className="inline-flex items-center bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded-full leading-none">
-                        ✓ PROPIETARIO DIRECTO
-                      </span>
-                    )}
-                    {listing.is_bank && (
-                      <span className="inline-flex items-center bg-blue-900 text-yellow-300 text-xs font-bold px-2 py-0.5 rounded-full leading-none">
-                        🏦 BANCO
-                      </span>
-                    )}
+
+                    {/* Badges */}
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {listing.is_particular && (
+                        <span className="inline-flex items-center bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                          ✓ PROPIETARIO
+                        </span>
+                      )}
+                      {listing.is_bank && (
+                        <span className="inline-flex items-center bg-blue-900 text-yellow-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                          🏦 BANCO
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>
