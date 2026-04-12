@@ -138,14 +138,21 @@ function parseDetailPage(html: string, sourceUrl: string): {
 
   // ── Precio ─────────────────────────────────────────────────────────────────
   let price: number | null = null
-  // "Desde 220.000 €", "220.000€", "80.000€"
+  // Patrones: "220.000 €", "80.000€", "Desde 50.000 €", "1.200.000 €"
   const pricePats = [
-    /(?:Desde\s+|Precio de salida\s*)?([\d]{2,3}(?:\.[\d]{3})+)\s*€/,
-    /(\d{5,7})\s*€/,
+    /(?:Desde\s+|Precio de salida\s*)?([\d]{1,3}(?:\.[\d]{3})+)\s*€/,
+    /[\s"'>](\d{4,7})\s*€/,
   ]
   for (const p of pricePats) {
     const pm = html.match(p)
-    if (pm) { price = parseInt(pm[1].replace(/\./g, ''), 10); break }
+    if (pm) {
+      const parsed = parseInt(pm[1].replace(/\./g, ''), 10)
+      // Filtrar precios absurdos (< 5.000€ o > 50.000.000€)
+      if (parsed >= 5_000 && parsed <= 50_000_000) {
+        price = parsed
+        break
+      }
+    }
   }
 
   // ── Superficie ─────────────────────────────────────────────────────────────
