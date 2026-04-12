@@ -417,4 +417,27 @@ jobs:
           echo "| 🏦 Aliseda | ${{ needs.aliseda.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 💎 Kelify | ${{ needs.job_kelify.result }} |" >> $GITHUB_STEP_SUMMARY
 
+  # ─── 🧠 Normalización de títulos con IA ─────────────────────────────────────
+  normalize_titles:
+    runs-on: ubuntu-latest
+    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda, job_kelify]
+    if: always() && needs.tecnocasa.result != 'cancelled'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: 🧠 Normalizar títulos con Gemini Flash
+        run: npx --yes tsx scripts/normalize-titles.ts --limit 150
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+
 

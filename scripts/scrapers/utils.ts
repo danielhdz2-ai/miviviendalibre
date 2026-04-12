@@ -33,6 +33,54 @@ const SUPABASE_URL = 'https://ktsdxpmaljiyuwimcugx.supabase.co'
 // Pega aquí tu service_role key de Supabase (Settings → API)
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? ''
 
+// ─── Deduplicación por contenido ────────────────────────────────────────────
+// Busca un anuncio existente en la BD usando:
+//   1. GPS dentro de ~100 m (0.001 grados)
+//   2. precio ±3% + superficie ±5 m² + misma ciudad + misma operación
+async function findContentDuplicate(
+  listing: ScrapedListing,
+  headers: Record<string, string>,
+): Promise<{ id: string; is_particular: boolean } | null> {
+
+  // Estrategia 1 — coordenadas GPS
+  if (listing.lat != null && listing.lng != null) {
+    const δ = 0.001
+    const url =
+      `${SUPABASE_URL}/rest/v1/listings` +
+      `?operation=eq.${listing.operation}` +
+      `&lat=gte.${(listing.lat - δ).toFixed(6)}&lat=lte.${(listing.lat + δ).toFixed(6)}` +
+      `&lng=gte.${(listing.lng - δ).toFixed(6)}&lng=lte.${(listing.lng + δ).toFixed(6)}` +
+      `&status=eq.published&select=id,is_particular&limit=1`
+    const res = await fetch(url, { headers })
+    if (res.ok) {
+      const rows = await res.json() as Array<{ id: string; is_particular: boolean }>
+      if (rows.length > 0) return rows[0]
+    }
+  }
+
+  // Estrategia 2 — precio + superficie + ciudad
+  if (listing.price_eur && listing.area_m2 && listing.city) {
+    const priceMin = Math.round(listing.price_eur * 0.97)
+    const priceMax = Math.round(listing.price_eur * 1.03)
+    const areaMin  = Math.max(0, Math.round(listing.area_m2 - 5))
+    const areaMax  = Math.round(listing.area_m2 + 5)
+    const url =
+      `${SUPABASE_URL}/rest/v1/listings` +
+      `?operation=eq.${listing.operation}` +
+      `&price_eur=gte.${priceMin}&price_eur=lte.${priceMax}` +
+      `&area_m2=gte.${areaMin}&area_m2=lte.${areaMax}` +
+      `&city=ilike.${encodeURIComponent(listing.city)}` +
+      `&status=eq.published&select=id,is_particular&limit=1`
+    const res = await fetch(url, { headers })
+    if (res.ok) {
+      const rows = await res.json() as Array<{ id: string; is_particular: boolean }>
+      if (rows.length > 0) return rows[0]
+    }
+  }
+
+  return null
+}
+
 export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
   if (!SUPABASE_SERVICE_KEY) {
     console.error('❌ Falta SUPABASE_SERVICE_KEY en variables de entorno')
@@ -45,10 +93,49 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     'Content-Type': 'application/json',
   }
 
+  // ── Paso 1: buscar duplicado exacto por source_portal + source_external_id ─
+  let listingId: string | null = null
+  let existingIsParticular = false
+
+  const exactRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/listings` +
+    `?source_portal=eq.${encodeURIComponent(listing.source_portal)}` +
+    `&source_external_id=eq.${encodeURIComponent(listing.source_external_id ?? '')}` +
+    `&select=id,is_particular&limit=1`,
+    { headers: baseHeaders },
+  )
+  if (exactRes.ok) {
+    const rows = await exactRes.json() as Array<{ id: string; is_particular: boolean }>
+    if (rows.length > 0) {
+      listingId = rows[0].id
+      existingIsParticular = rows[0].is_particular
+    }
+  }
+
+  // ── Paso 2: si no hay dedup exacto, buscar por contenido ──────────────────
+  if (!listingId) {
+    const contentMatch = await findContentDuplicate(listing, baseHeaders)
+    if (contentMatch) {
+      listingId = contentMatch.id
+      existingIsParticular = contentMatch.is_particular
+      console.log(`  📎 Dedup contenido → fusionando con id ${listingId}`)
+    }
+  }
+
+  // ── Paso 3: Prioridad Particular ──────────────────────────────────────────
+  // Si el anuncio existente era de agencia pero el nuevo es de particular → promover
+  // Nunca degradar: si ya es particular, se queda particular
+  const isParticular = listing.is_particular || existingIsParticular
+  if (listing.is_particular && !existingIsParticular && listingId) {
+    console.log(`  ⭐ Promovido a "Directo de Particular"`)
+  }
+
+  const rankingScore = isParticular ? 90 : (listing.is_bank ? 70 : 30)
+
   const body = {
     origin: 'external',
     status: 'published',
-    is_particular: listing.is_particular,
+    is_particular: isParticular,
     operation: listing.operation,
     title: listing.title,
     description: listing.description ?? null,
@@ -65,7 +152,7 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     source_portal: listing.source_portal,
     source_url: listing.source_url,
     source_external_id: listing.source_external_id,
-    ranking_score: listing.is_bank ? 70 : 30,
+    ranking_score: rankingScore,
     published_at: new Date().toISOString(),
     is_bank: listing.is_bank ?? false,
     bank_entity: listing.bank_entity ?? null,
@@ -73,49 +160,53 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     phone: listing.phone ?? null,
   }
 
-  // Intenta INSERT primero
-  const postRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
-    method: 'POST',
-    headers: { ...baseHeaders, Prefer: 'return=representation' },
-    body: JSON.stringify(body),
-  })
-
-  let listingId: string | null = null
-
-  if (postRes.ok) {
-    // Nuevo listing creado
-    const data = await postRes.json() as Array<{ id: string }>
-    listingId = data[0]?.id ?? null
+  // ── Paso 4: PATCH si existe, INSERT si no ─────────────────────────────────
+  if (listingId) {
+    await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+      method: 'PATCH',
+      headers: { ...baseHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify(body),
+    })
+    // Reemplazar imágenes
+    await fetch(`${SUPABASE_URL}/rest/v1/listing_images?listing_id=eq.${listingId}`, {
+      method: 'DELETE',
+      headers: { ...baseHeaders, Prefer: 'return=minimal' },
+    })
   } else {
-    const err = await postRes.text()
-    if (err.includes('"23505"')) {
-      // Ya existe — buscar su id y hacer PATCH para actualizar datos
-      const getRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings` +
-        `?source_portal=eq.${encodeURIComponent(listing.source_portal)}` +
-        `&source_external_id=eq.${encodeURIComponent(listing.source_external_id ?? '')}` +
-        `&select=id`,
-        { headers: baseHeaders }
-      )
-      if (getRes.ok) {
-        const existing = await getRes.json() as Array<{ id: string }>
-        listingId = existing[0]?.id ?? null
-      }
-      if (listingId) {
-        await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
-          method: 'PATCH',
-          headers: { ...baseHeaders, Prefer: 'return=minimal' },
-          body: JSON.stringify(body),
-        })
-        // Borrar imágenes antiguas para insertar las nuevas
-        await fetch(`${SUPABASE_URL}/rest/v1/listing_images?listing_id=eq.${listingId}`, {
-          method: 'DELETE',
-          headers: { ...baseHeaders, Prefer: 'return=minimal' },
-        })
-      }
+    const postRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
+      method: 'POST',
+      headers: { ...baseHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify(body),
+    })
+    if (postRes.ok) {
+      const data = await postRes.json() as Array<{ id: string }>
+      listingId = data[0]?.id ?? null
     } else {
-      console.error(`  ↳ Error upsert: ${err.slice(0, 120)}`)
-      return false
+      const err = await postRes.text()
+      // Conflicto de unique constraint (race condition) → intentar PATCH
+      if (err.includes('"23505"')) {
+        const retryRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/listings` +
+          `?source_portal=eq.${encodeURIComponent(listing.source_portal)}` +
+          `&source_external_id=eq.${encodeURIComponent(listing.source_external_id ?? '')}` +
+          `&select=id&limit=1`,
+          { headers: baseHeaders },
+        )
+        if (retryRes.ok) {
+          const rows = await retryRes.json() as Array<{ id: string }>
+          listingId = rows[0]?.id ?? null
+        }
+        if (listingId) {
+          await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+            method: 'PATCH',
+            headers: { ...baseHeaders, Prefer: 'return=minimal' },
+            body: JSON.stringify(body),
+          })
+        }
+      } else {
+        console.error(`  ↳ Error upsert: ${err.slice(0, 120)}`)
+        return false
+      }
     }
   }
 
