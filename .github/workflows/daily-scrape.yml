@@ -1,0 +1,61 @@
+name: Daily Scrape – pisos.com Particulares
+
+on:
+  # Todos los días a las 07:00 UTC (09:00 España)
+  schedule:
+    - cron: '0 7 * * *'
+  # Botón manual desde GitHub Actions
+  workflow_dispatch:
+    inputs:
+      operacion:
+        description: 'Operación (alquiler | venta | ambas)'
+        default: 'ambas'
+        required: false
+      paginas:
+        description: 'Páginas por ciudad'
+        default: '3'
+        required: false
+
+jobs:
+  scrape:
+    name: Scrape particulares
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # ── Alquiler ────────────────────────────────────────────────
+      - name: Scrape alquiler particulares
+        if: ${{ github.event.inputs.operacion != 'venta' }}
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          PAGES="${{ github.event.inputs.paginas || '3' }}"
+          for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
+            echo "── alquiler/$city ($PAGES páginas) ──"
+            npx tsx scripts/scrapers/pisoscom_particulares.ts alquiler $city $PAGES
+            sleep 5
+          done
+
+      # ── Venta ───────────────────────────────────────────────────
+      - name: Scrape venta particulares
+        if: ${{ github.event.inputs.operacion != 'alquiler' }}
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          PAGES="${{ github.event.inputs.paginas || '3' }}"
+          for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
+            echo "── venta/$city ($PAGES páginas) ──"
+            npx tsx scripts/scrapers/pisoscom_particulares.ts venta $city $PAGES
+            sleep 5
+          done
