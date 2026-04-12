@@ -151,7 +151,7 @@ function extractListings(
 
     // Descripción: texto desde "Venta de" / "Alquiler de" hasta UI element
     const descM = text.match(
-      /((?:Venta|Alquiler) de [a-z\u00e0-\u00ff]{2,20}[,. ].{30,450}?)(?:\s+(?:Email|Contactar|Guardar|Coraz[oó]n|A[ñn]adir|Compartir|Anunciante))/i
+      /((?:Venta|Alquiler) de [a-z\u00e0-\u00ff]{2,20}[,. ].{30,1200}?)(?:\s+(?:Email|Contactar|Guardar|Coraz[oó]n|A[ñn]adir|Compartir|Anunciante))/i
     )
     const description = descM ? descM[1].replace(/\s+/g, ' ').trim() : undefined
 

@@ -20,12 +20,40 @@ function formatPriceFull(price: number | null, operation: string): string {
   return operation === 'rent' ? `${f} €/mes` : `${f} €`
 }
 
+// Coordenadas de ciudades principales para zoom rápido
+const CIUDAD_COORDS: Record<string, [number, number]> = {
+  madrid: [40.4168, -3.7038],
+  barcelona: [41.3879, 2.1699],
+  valencia: [39.4699, -0.3763],
+  sevilla: [37.3891, -5.9845],
+  zaragoza: [41.6488, -0.8891],
+  malaga: [36.7202, -4.4203],
+  málaga: [36.7202, -4.4203],
+  alicante: [38.3452, -0.4815],
+  murcia: [37.9922, -1.1307],
+  granada: [37.1773, -3.5986],
+  bilbao: [43.2630, -2.9350],
+  valladolid: [41.6523, -4.7245],
+  córdoba: [37.8882, -4.7794],
+  cordoba: [37.8882, -4.7794],
+  vigo: [42.2314, -8.7124],
+  gijón: [43.5322, -5.6611],
+  gijon: [43.5322, -5.6611],
+  salamanca: [40.9650, -5.6643],
+  pamplona: [42.8169, -1.6432],
+  toledo: [39.8628, -4.0273],
+  palma: [39.5696, 2.6502],
+  donostia: [43.3183, -1.9812],
+  'san sebastián': [43.3183, -1.9812],
+}
+
 interface Props {
   listings: Listing[]
   total?: number
+  ciudad?: string
 }
 
-export default function MapSearchView({ listings, total }: Props) {
+export default function MapSearchView({ listings, total, ciudad }: Props) {
   const mapElRef = useRef<HTMLDivElement>(null)
   const mapObjRef = useRef<ReturnType<typeof import('leaflet')['map']> | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,9 +117,14 @@ export default function MapSearchView({ listings, total }: Props) {
       markersRef.current[listing.id] = marker
     })
 
-    if (withCoords.length > 0) {
+    // Si hay ciudad buscada hacer zoom a ella; si no, ajustar a marcadores disponibles
+    const ciudadKey = ciudad?.toLowerCase().trim() ?? ''
+    const cityCoords = CIUDAD_COORDS[ciudadKey]
+    if (cityCoords) {
+      map.setView(cityCoords, 12)
+    } else if (withCoords.length > 0) {
       const bounds = L.latLngBounds(withCoords.map((l) => [l.lat!, l.lng!]))
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 })
     } else {
       map.setView([40.4168, -3.7038], 6)
     }
@@ -160,14 +193,14 @@ export default function MapSearchView({ listings, total }: Props) {
                 onMouseEnter={() => { if (hasCoords) setActiveId(listing.id) }}
                 onMouseLeave={() => setActiveId(null)}
               >
-                {/* Imagen */}
-                <div className="w-24 shrink-0 bg-gray-100 overflow-hidden self-stretch relative">
+                {/* Imagen cuadrada más grande */}
+                <div className="w-32 h-32 shrink-0 bg-gray-100 overflow-hidden relative">
                   {imgUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imgUrl} alt={listing.title} className="w-full h-full object-cover absolute inset-0" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       </svg>
                     </div>
@@ -177,28 +210,41 @@ export default function MapSearchView({ listings, total }: Props) {
                       🏦
                     </span>
                   )}
+                  {listing.is_particular && (
+                    <span className="absolute bottom-1 left-1 bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                      💎
+                    </span>
+                  )}
+                  <span className={`absolute top-1 right-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${listing.operation === 'rent' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {listing.operation === 'rent' ? 'Alq.' : 'Venta'}
+                  </span>
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 px-3 py-2.5 min-w-0">
-                  <p className="font-bold text-gray-900 text-sm leading-tight">
-                    {formatPriceFull(listing.price_eur, listing.operation)}
-                  </p>
-                  <p className="text-xs text-gray-600 line-clamp-2 leading-snug mt-0.5">
-                    {listing.title}
-                  </p>
-                  <div className="flex gap-2 mt-1.5 text-xs text-gray-400 flex-wrap">
+                <div className="flex-1 px-3 py-2.5 min-w-0 flex flex-col justify-between">
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm leading-tight">
+                      {formatPriceFull(listing.price_eur, listing.operation)}
+                    </p>
+                    <p className="text-xs text-gray-700 line-clamp-2 leading-snug mt-0.5 font-medium">
+                      {listing.title}
+                    </p>
+                    {listing.description && (
+                      <p className="text-[11px] text-gray-400 line-clamp-2 leading-snug mt-1">
+                        {listing.description.slice(0, 90)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-1.5 text-xs text-gray-500 flex-wrap">
                     {listing.bedrooms != null && (
                       <span>🛏 {listing.bedrooms === 0 ? 'Estudio' : listing.bedrooms}</span>
                     )}
+                    {listing.bathrooms != null && (
+                      <span>🚿 {listing.bathrooms}</span>
+                    )}
                     {listing.area_m2 && <span>📐 {listing.area_m2}m²</span>}
-                    {listing.city && <span className="truncate">📍 {listing.city}</span>}
+                    {listing.city && <span className="truncate text-gray-400">📍 {listing.city}</span>}
                   </div>
-                  {listing.is_particular && (
-                    <span className="inline-block mt-1.5 text-[9px] font-semibold bg-emerald-700 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-                      💎 PROPIETARIO DIRECTO
-                    </span>
-                  )}
                 </div>
               </Link>
             )

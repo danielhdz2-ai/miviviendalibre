@@ -6,6 +6,7 @@ import ContactForm from './ContactForm'
 import MapWrapper from './MapWrapper'
 import ViewTracker from './ViewTracker'
 import ListingGallery from '@/components/ListingGallery'
+import DescriptionExpand from './DescriptionExpand'
 import { getListingById } from '@/lib/listings'
 import type { Metadata } from 'next'
 
@@ -118,9 +119,7 @@ export default async function ListingDetailPage({ params }: Props) {
             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
               <h2 className="font-semibold text-gray-900 mb-3">Descripción</h2>
               {listing.description ? (
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line text-sm">
-                  {listing.description}
-                </p>
+                <DescriptionExpand text={listing.description} />
               ) : (
                 <p className="text-gray-400 text-sm italic">Sin descripción</p>
               )}

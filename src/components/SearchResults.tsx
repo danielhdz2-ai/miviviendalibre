@@ -83,7 +83,7 @@ export default function SearchResults({
         {/* Listado / Mapa */}
         {listings.length > 0 ? (
           vista === 'mapa' ? (
-            <MapSearchView listings={listings} total={total} />
+            <MapSearchView listings={listings} total={total} ciudad={currentParams.ciudad} />
           ) : vista === 'lista' ? (
             <div className="flex flex-col gap-3">
               {listings.map((listing) => (
