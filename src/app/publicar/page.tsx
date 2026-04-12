@@ -5,7 +5,7 @@ import Navbar from '@/components/NavbarServer'
 import PublicarWizard from './PublicarWizard'
 
 export const metadata = {
-  title: 'Publicar anuncio gratis — Mi Vivienda Libre',
+  title: 'Publicar anuncio gratis — Inmonest',
   description: 'Publica tu piso gratis. Sin comisiones, trato directo entre propietario e inquilino.',
 }
 

@@ -61,12 +61,11 @@ export default function Home() {
               ✦ Solo propietarios particulares
             </span>
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight text-white drop-shadow-md">
-              Encuentra tu hogar.
-              <br />
-              <span className="text-[#f4c94a]">Sin agencias. Sin comisiones.</span>
+              Inmonest: Quédate con<br />
+              <span className="text-[#f4c94a]">el 100% de tu venta</span>
             </h1>
             <p className="mt-5 text-lg text-white/80 max-w-xl leading-relaxed">
-              Conectamos propietarios e inquilinos directamente. Ahorra tiempo y dinero buscando solo entre particulares.
+              Tu nido, directo y sin comisiones. Conectamos propietarios e inquilinos directamente. Sin agencias, sin intermediarios.
             </p>
           </div>
 
@@ -116,7 +115,7 @@ export default function Home() {
       <section className="bg-[#fffdf5] border-y border-[#f4c94a]/20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-            ¿Por qué Mi Vivienda Libre?
+            ¿Por qué Inmonest?
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {VENTAJAS.map((v) => (
@@ -182,8 +181,9 @@ export default function Home() {
       <footer className="mt-auto border-t border-[#f4c94a]/20 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Mi Vivienda Libre" width={200} height={60} className="h-14 w-auto opacity-90" />
-            <span>© 2026 Mi Vivienda Libre. Todos los derechos reservados.</span>
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e3a5f] text-white font-black text-sm">IN</span>
+            <span className="font-bold text-gray-700">Inmonest</span>
+            <span>© 2026 Inmonest. Todos los derechos reservados.</span>
           </div>
           <div className="flex gap-5">
             <Link href="/aviso-legal" className="hover:text-[#c9962a] transition-colors">Aviso legal</Link>

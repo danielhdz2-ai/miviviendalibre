@@ -152,7 +152,7 @@ export default function AgenciasContent() {
       <section className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-14">
-            Estar en Mi Vivienda Libre es así de fácil
+            Estar en Inmonest es así de fácil
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[

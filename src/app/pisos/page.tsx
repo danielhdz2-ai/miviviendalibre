@@ -20,7 +20,7 @@ export async function generateMetadata({ searchParams }: PisosPageProps): Promis
   const ciudadLabel = ciudad ? ` en ${ciudad.charAt(0).toUpperCase() + ciudad.slice(1)}` : ''
   const particulares = soloParticulares ? ' de particulares' : ''
 
-  const title = `Pisos${opLabel ? ' ' + opLabel : ''}${ciudadLabel}${particulares} — Mi Vivienda Libre`
+  const title = `Pisos${opLabel ? ' ' + opLabel : ''}${ciudadLabel}${particulares} — Inmonest`
   const description = `Encuentra pisos${opLabel ? ' ' + opLabel : ''}${ciudadLabel} publicados directamente por sus propietarios. Sin comisiones de agencia.`
 
   return {

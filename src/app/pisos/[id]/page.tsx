@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const listing = await getListingById(id)
   if (!listing) return { title: 'Anuncio no encontrado' }
   return {
-    title: `${listing.title} — Mi Vivienda Libre`,
+    title: `${listing.title} — Inmonest`,
     description: listing.description?.slice(0, 160) ?? undefined,
   }
 }

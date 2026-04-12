@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://miviviendalibre.com'
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inmonest.com'
 
 const CIUDADES_PRINCIPALES = [
   'madrid', 'barcelona', 'valencia', 'sevilla', 'zaragoza',

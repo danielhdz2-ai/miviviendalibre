@@ -4,7 +4,7 @@ import VenderForm from '@/components/VenderForm'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Vende tu casa rápido — Mi Vivienda Libre',
+  title: 'Vende tu casa rápido — Inmonest',
   description: 'Conectamos propietarios con las mejores agencias inmobiliarias de tu zona. Gratis, sin compromiso y en menos de 24 horas.',
 }
 

@@ -35,7 +35,7 @@ const PASOS = [
   {
     num: '03',
     icon: '🚀',
-    titulo: 'Activa el Modo Turbo',
+    titulo: 'Activa Inmonest Turbo',
     desc: 'Al publicar, tu anuncio se distribuye automáticamente a nuestra red de compradores e inversores verificados en toda España.',
     detalle: 'Alertas inmediatas a usuarios que buscan propiedades como la tuya.',
     color: 'from-orange-50 to-red-50',
@@ -59,7 +59,7 @@ const PASOS = [
 const VENTAJAS = [
   { icon: '🆓', titulo: '2 anuncios gratuitos', desc: 'Publica tus primeros 2 anuncios completamente gratis. Sin tarjeta de crédito.' },
   { icon: '⚡', titulo: 'Publicación inmediata', desc: 'Tu anuncio aparece en segundos. Sin moderación manual ni esperas.' },
-  { icon: '👥', titulo: 'Compradores verificados', desc: 'Nuestra red de Modo Turbo solo incluye usuarios con intención real de compra o alquiler.' },
+  { icon: '👥', titulo: 'Compradores verificados', desc: 'Nuestra red Inmonest Turbo solo incluye usuarios con intención real de compra o alquiler.' },
   { icon: '📊', titulo: 'Estadísticas en tiempo real', desc: 'Ve cuántas visitas y contactos ha recibido tu anuncio desde tu panel privado.' },
   { icon: '⚖️', titulo: 'Contratos legales incluidos', desc: 'Accede a contratos de arras, alquiler y reserva redactados por nuestro equipo jurídico.' },
   { icon: '🛡️', titulo: 'Protección de datos', desc: 'Tu teléfono nunca se muestra públicamente a menos que tú lo decidas.' },
@@ -72,15 +72,15 @@ const FAQS = [
   },
   {
     q: '¿Cuánto tiempo tarda en aparecer mi anuncio?',
-    a: 'La publicación es inmediata. En cuanto termines el formulario, tu anuncio estará visible y los usuarios del Modo Turbo recibirán una alerta.',
+    a: 'La publicación es inmediata. En cuanto termines el formulario, tu anuncio estará visible y los usuarios de Inmonest Turbo recibirán una alerta.',
   },
   {
     q: '¿Pueden contactarme agencias inmobiliarias?',
     a: 'No si no quieres. Puedes activar el modo "Solo particulares" para que solo vean tu contacto usuarios verificados como particulares.',
   },
   {
-    q: '¿Qué es el Modo Turbo?',
-    a: 'Al activar Turbo, tu anuncio se promociona activamente entre nuestra base de compradores e inquilinos registrados que tienen alertas activas para propiedades como la tuya.',
+    q: '¿Qué es Inmonest Turbo?',
+    a: 'Al activar Inmonest Turbo, tu anuncio se promociona activamente entre nuestra base de compradores e inquilinos registrados que tienen alertas activas para propiedades como la tuya.',
   },
   {
     q: '¿Puedo editar o eliminar mi anuncio después?',
@@ -288,7 +288,7 @@ export default async function PublicarAnuncioPage() {
               <p className="text-3xl font-black text-white mb-1">29€<span className="text-base font-medium text-white/50">/mes</span></p>
               <p className="text-xs text-white/40 mb-5">Sin permanencia · Cancela cuando quieras</p>
               <ul className="space-y-2.5 text-sm text-white/80 mb-6">
-                {['Anuncios ilimitados', 'Modo Turbo incluido', 'CRM de contactos', 'Estadísticas avanzadas', 'Contratos legales'].map((f) => (
+                {['Anuncios ilimitados', 'Inmonest Turbo incluido', 'CRM de contactos', 'Estadísticas avanzadas', 'Contratos legales'].map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-[#f4c94a]" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

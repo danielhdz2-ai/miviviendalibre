@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Navbar from '@/components/NavbarServer'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: '¡Turbo activado! — Mi Vivienda Libre' }
+export const metadata: Metadata = { title: '¡Inmonest Turbo activado!' }
 
 interface Props {
   searchParams: Promise<{ listing_id?: string; session_id?: string }>

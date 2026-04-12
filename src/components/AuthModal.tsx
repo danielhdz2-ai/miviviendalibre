@@ -16,8 +16,8 @@ export default function AuthModal({
   isOpen,
   onClose,
   redirectTo = '/publicar',
-  title = 'Publica tu anuncio gratis',
-  subtitle = 'Publica gratis tus 2 primeros anuncios. Gestión directa con particulares y visibilidad Turbo inmediata.',
+  title = 'Publica tu anuncio en Inmonest',
+  subtitle = 'Bienvenido a Inmonest. Publica tu anuncio y ahorra miles en comisiones. Gestión directa con particulares y visibilidad Inmonest Turbo inmediata.',
 }: AuthModalProps) {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -163,7 +163,7 @@ export default function AuthModal({
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900 leading-tight mb-2">
                   Inicia sesión o regístrate<br />para publicar en{' '}
-                  <span className="text-[#c9962a]">Inmovía</span>
+                  <span className="text-[#1e3a5f]">Inmonest</span>
                 </h2>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   {subtitle}

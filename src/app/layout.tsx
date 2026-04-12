@@ -14,14 +14,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mi Vivienda Libre — Pisos de particulares en España",
-  description: "Encuentra y publica pisos de alquiler y venta directamente entre particulares, sin agencias ni comisiones.",
-  keywords: "pisos particulares, alquiler sin agencia, compra sin intermediarios, inmuebles particulares España",
+  title: "Inmonest | Venta de pisos entre particulares sin comisiones",
+  description: "La plataforma líder para vender tu casa directamente. Sin agencias, sin comisiones. Quédate con el 100% de tu venta.",
+  keywords: "pisos particulares, vender casa sin comisión, alquiler sin agencia, compra sin intermediarios, inmuebles particulares España, inmonest",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inmonest.com'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: "Mi Vivienda Libre",
-    description: "Pisos de particulares en España. Sin agencias.",
+    title: "Inmonest | Venta de pisos sin comisiones",
+    description: "La plataforma líder para vender tu casa directamente. Sin agencias, sin comisiones.",
     locale: "es_ES",
     type: "website",
+    siteName: "Inmonest",
   },
 };
 
