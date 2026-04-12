@@ -1,4 +1,4 @@
-name: Daily Scrape – pisos.com Particulares
+name: Daily Scrape – Particulares (pisos.com + milanuncios + tucasa)
 
 on:
   # Todos los días a las 07:00 UTC (09:00 España)
@@ -14,6 +14,10 @@ on:
       paginas:
         description: 'Páginas por ciudad'
         default: '3'
+        required: false
+      scraper:
+        description: 'Scraper (pisoscom | milanuncios | tucasa | todos)'
+        default: 'todos'
         required: false
 
 jobs:
@@ -34,28 +38,86 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # ── Alquiler ────────────────────────────────────────────────
-      - name: Scrape alquiler particulares
-        if: ${{ github.event.inputs.operacion != 'venta' }}
+      # ═══════════════ PISOS.COM ════════════════════════════════
+
+      # ── pisos.com Alquiler ─────────────────────────────────────
+      - name: "[pisos.com] Scrape alquiler"
+        if: ${{ github.event.inputs.operacion != 'venta' && (github.event.inputs.scraper == 'pisoscom' || github.event.inputs.scraper == 'todos' || github.event.inputs.scraper == '') }}
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           PAGES="${{ github.event.inputs.paginas || '3' }}"
           for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
-            echo "── alquiler/$city ($PAGES páginas) ──"
+            echo "── pisos.com alquiler/$city ($PAGES páginas) ──"
             npx tsx scripts/scrapers/pisoscom_particulares.ts alquiler $city $PAGES
             sleep 5
           done
 
-      # ── Venta ───────────────────────────────────────────────────
-      - name: Scrape venta particulares
-        if: ${{ github.event.inputs.operacion != 'alquiler' }}
+      # ── pisos.com Venta ────────────────────────────────────────
+      - name: "[pisos.com] Scrape venta"
+        if: ${{ github.event.inputs.operacion != 'alquiler' && (github.event.inputs.scraper == 'pisoscom' || github.event.inputs.scraper == 'todos' || github.event.inputs.scraper == '') }}
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           PAGES="${{ github.event.inputs.paginas || '3' }}"
           for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
-            echo "── venta/$city ($PAGES páginas) ──"
+            echo "── pisos.com venta/$city ($PAGES páginas) ──"
             npx tsx scripts/scrapers/pisoscom_particulares.ts venta $city $PAGES
+            sleep 5
+          done
+
+      # ═══════════════ MILANUNCIOS ══════════════════════════════
+
+      # ── Milanuncios Alquiler ───────────────────────────────────
+      - name: "[milanuncios] Scrape alquiler"
+        if: ${{ github.event.inputs.operacion != 'venta' && (github.event.inputs.scraper == 'milanuncios' || github.event.inputs.scraper == 'todos' || github.event.inputs.scraper == '') }}
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          PAGES="${{ github.event.inputs.paginas || '5' }}"
+          for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
+            echo "── milanuncios alquiler/$city ($PAGES páginas) ──"
+            npx tsx scripts/scrapers/milanuncios_particulares.ts alquiler $city $PAGES
+            sleep 8
+          done
+
+      # ── Milanuncios Venta ──────────────────────────────────────
+      - name: "[milanuncios] Scrape venta"
+        if: ${{ github.event.inputs.operacion != 'alquiler' && (github.event.inputs.scraper == 'milanuncios' || github.event.inputs.scraper == 'todos' || github.event.inputs.scraper == '') }}
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          PAGES="${{ github.event.inputs.paginas || '5' }}"
+          for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
+            echo "── milanuncios venta/$city ($PAGES páginas) ──"
+            npx tsx scripts/scrapers/milanuncios_particulares.ts venta $city $PAGES
+            sleep 8
+          done
+
+      # ═══════════════ TUCASA ═══════════════════════════════════
+
+      # ── tucasa Alquiler ────────────────────────────────────────
+      - name: "[tucasa] Scrape alquiler"
+        if: ${{ github.event.inputs.operacion != 'venta' && (github.event.inputs.scraper == 'tucasa' || github.event.inputs.scraper == 'todos' || github.event.inputs.scraper == '') }}
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          PAGES="${{ github.event.inputs.paginas || '5' }}"
+          for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
+            echo "── tucasa alquiler/$city ($PAGES páginas) ──"
+            npx tsx scripts/scrapers/tucasa_standalone.ts alquiler $city $PAGES
+            sleep 5
+          done
+
+      # ── tucasa Venta ───────────────────────────────────────────
+      - name: "[tucasa] Scrape venta"
+        if: ${{ github.event.inputs.operacion != 'alquiler' && (github.event.inputs.scraper == 'tucasa' || github.event.inputs.scraper == 'todos' || github.event.inputs.scraper == '') }}
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          PAGES="${{ github.event.inputs.paginas || '5' }}"
+          for city in madrid barcelona valencia sevilla malaga bilbao zaragoza granada; do
+            echo "── tucasa venta/$city ($PAGES páginas) ──"
+            npx tsx scripts/scrapers/tucasa_standalone.ts venta $city $PAGES
             sleep 5
           done
