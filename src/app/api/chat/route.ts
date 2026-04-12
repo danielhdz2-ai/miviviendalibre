@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Leemos la key en runtime (no en module-load) para que Vercel la resuelva correctamente
-function getApiKey(): string {
+function getGeminiKey(): string {
   return (
     process.env.CLAVE_API_IA_GOOGLE ??
     process.env.GOOGLE_AI_API_KEY ??
     process.env.GEMINI_API_KEY ??
     ''
   ).trim()
+}
+
+function getOpenRouterKey(): string {
+  return (process.env.OPENROUTER_API_KEY ?? '').trim()
 }
 
 const SYSTEM_PROMPT = `Eres un asistente de búsqueda de pisos para el portal MiviviendaLibre.
@@ -40,13 +43,62 @@ Usuario: "alquiler Valencia 2 habitaciones entre 600 y 1000"
 Si el usuario pregunta algo que no es una búsqueda de piso, devuelve:
 {"error":"Solo puedo ayudarte a buscar pisos y casas en España."}`
 
-export async function POST(req: NextRequest) {
-  const GEMINI_API_KEY = getApiKey()
-  if (!GEMINI_API_KEY) {
-    console.error('[chat/route] API key no encontrada. Variables disponibles:', Object.keys(process.env).filter(k => k.toLowerCase().includes('gemini') || k.toLowerCase().includes('google_ai')))
-    return NextResponse.json({ error: 'Chat IA no configurado: falta GOOGLE_AI_API_KEY en variables de entorno' }, { status: 503 })
+function parseFilters(raw: string): Record<string, unknown> {
+  try {
+    const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim()
+    return JSON.parse(clean)
+  } catch {
+    return { raw }
+  }
+}
+
+async function callGemini(apiKey: string, lastUserMsg: string, recent: Array<{ role: string; content: string }>): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash-lite',
+    systemInstruction: SYSTEM_PROMPT,
+  })
+
+  const rawHistory = recent.slice(0, -1).map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }))
+  while (rawHistory.length > 0 && rawHistory[0].role === 'model') rawHistory.shift()
+
+  const chat = model.startChat({ history: rawHistory })
+  const result = await chat.sendMessage(lastUserMsg)
+  return result.response.text().trim()
+}
+
+async function callOpenRouter(apiKey: string, lastUserMsg: string): Promise<string> {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://miviviendalibre.vercel.app',
+      'X-Title': 'MiviviendaLibre',
+    },
+    body: JSON.stringify({
+      model: 'openrouter/free',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: lastUserMsg },
+      ],
+      temperature: 0.1,
+    }),
+  })
+
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`OpenRouter ${res.status}: ${errText}`)
   }
 
+  const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+  return data.choices?.[0]?.message?.content?.trim() ?? ''
+}
+
+export async function POST(req: NextRequest) {
   let body: { messages?: Array<{ role: string; content: string }> }
   try {
     body = await req.json()
@@ -55,70 +107,46 @@ export async function POST(req: NextRequest) {
   }
 
   const messages = body.messages ?? []
-  if (!messages.length) {
-    return NextResponse.json({ error: 'Sin mensajes' }, { status: 422 })
-  }
+  if (!messages.length) return NextResponse.json({ error: 'Sin mensajes' }, { status: 422 })
 
   const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-  if (!lastUser) {
-    return NextResponse.json({ error: 'Sin mensaje de usuario' }, { status: 422 })
-  }
+  if (!lastUser) return NextResponse.json({ error: 'Sin mensaje de usuario' }, { status: 422 })
 
-  // Construir historial de conversación (últimos 6 turnos)
   const recent = messages.slice(-6)
+  const geminiKey = getGeminiKey()
+  const openrouterKey = getOpenRouterKey()
 
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: SYSTEM_PROMPT,
-    })
-
-    // El historial de Gemini debe empezar con rol 'user' y alternar user/model.
-    // Filtramos el mensaje de bienvenida del asistente que encabeza la lista.
-    const rawHistory = recent.slice(0, -1).map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
-    // Descartar entradas iniciales con rol 'model' (la bienvenida del widget)
-    while (rawHistory.length > 0 && rawHistory[0].role === 'model') {
-      rawHistory.shift()
-    }
-
-    const chat = model.startChat({ history: rawHistory })
-
-    const result = await chat.sendMessage(lastUser.content)
-    const raw = result.response.text().trim()
-
-    // Intentar parsear el JSON de vuelta
-    let filters: Record<string, unknown> = {}
+  // ── Intento 1: Gemini ──────────────────────────────────────
+  if (geminiKey) {
     try {
-      // Quitar posible bloque ```json ... ```
-      const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim()
-      filters = JSON.parse(clean)
-    } catch {
-      filters = { raw }
+      const raw = await callGemini(geminiKey, lastUser.content, recent)
+      return NextResponse.json({ ok: true, filters: parseFilters(raw), raw })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn('[chat/route] Gemini falló, probando fallback OpenRouter:', msg)
     }
-
-    return NextResponse.json({ ok: true, filters, raw })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    const errJson = err instanceof Error ? { name: err.name, message: err.message } : String(err)
-    console.error('[chat/route] Gemini error:', JSON.stringify(errJson))
-    // Cuota agotada
-    if (msg.includes('429') || msg.includes('quota') || msg.includes('Too Many Requests')) {
-      return NextResponse.json(
-        { error: 'El asistente IA está ocupado. Inténtalo de nuevo en unos segundos.' },
-        { status: 429 }
-      )
-    }
-    // API key inválida o sin permisos
-    if (msg.includes('400') || msg.includes('401') || msg.includes('403') || msg.includes('API key') || msg.includes('not found') || msg.includes('deprecated')) {
-      return NextResponse.json(
-        { error: 'El asistente IA no está configurado correctamente. Contacta con el administrador.' },
-        { status: 503 }
-      )
-    }
-    return NextResponse.json({ error: 'El asistente no está disponible ahora mismo.' }, { status: 500 })
   }
+
+  // ── Intento 2: OpenRouter (fallback) ───────────────────────
+  if (openrouterKey) {
+    try {
+      const raw = await callOpenRouter(openrouterKey, lastUser.content)
+      return NextResponse.json({ ok: true, filters: parseFilters(raw), raw })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[chat/route] OpenRouter también falló:', msg)
+    }
+  }
+
+  // ── Sin opciones disponibles ───────────────────────────────
+  if (!geminiKey && !openrouterKey) {
+    console.error('[chat/route] No hay ninguna API key configurada (GOOGLE_AI_API_KEY, OPENROUTER_API_KEY)')
+  }
+
+  return NextResponse.json(
+    { error: 'El asistente IA no está disponible ahora mismo. Inténtalo de nuevo.' },
+    { status: 503 }
+  )
 }
+
+
