@@ -149,7 +149,7 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
               <Link
-                href="/publicar"
+                href="/publicar-anuncio"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#c9962a] text-white font-semibold hover:bg-[#a87a20] transition-colors text-sm shadow-lg shadow-[#c9962a]/40"
               >
                 Publicar mi anuncio gratis →
