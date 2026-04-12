@@ -30,6 +30,12 @@ export interface ScrapedListing {
 
 const SUPABASE_URL = 'https://ktsdxpmaljiyuwimcugx.supabase.co'
 
+// Portales que son 100% agencias — nunca marcar como particular
+const AGENCY_PORTALS = new Set([
+  'tecnocasa', 'redpiso', 'gilmar', 'solvia', 'aliseda', 'monapart',
+  'servihabitat', 'habitaclia', 'fotocasa',
+])
+
 // Pega aquí tu service_role key de Supabase (Settings → API)
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? ''
 
@@ -123,9 +129,11 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
   }
 
   // ── Paso 3: Prioridad Particular ──────────────────────────────────────────
+  // Portales de agencia → forzar is_particular=false sin excepción
+  const fromAgencyPortal = AGENCY_PORTALS.has(listing.source_portal.toLowerCase())
   // Si el anuncio existente era de agencia pero el nuevo es de particular → promover
   // Nunca degradar: si ya es particular, se queda particular
-  const isParticular = listing.is_particular || existingIsParticular
+  const isParticular = fromAgencyPortal ? false : (listing.is_particular || existingIsParticular)
   if (listing.is_particular && !existingIsParticular && listingId) {
     console.log(`  ⭐ Promovido a "Directo de Particular"`)
   }
