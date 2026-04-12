@@ -10,7 +10,7 @@
  *   maxPages: número de páginas (default: 5)
  */
 
-import { upsertListing, type ScrapedListing } from './utils'
+import { upsertListing, extractPhone, type ScrapedListing } from './utils'
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -333,6 +333,8 @@ async function scrapeParticulares(
         source_external_id: externalId,
         is_particular: true, // ✅ SIEMPRE true en este scraper
         images: detail.images,
+        external_link: detailUrl,
+        phone: extractPhone(detailHtml) ?? undefined,
       }
 
       const ok = await upsertListing(listing)

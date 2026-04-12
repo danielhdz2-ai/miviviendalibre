@@ -8,6 +8,7 @@ import ViewTracker from './ViewTracker'
 import ListingGallery from '@/components/ListingGallery'
 import DescriptionExpand from './DescriptionExpand'
 import { getListingById } from '@/lib/listings'
+import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -57,6 +58,10 @@ export default async function ListingDetailPage({ params }: Props) {
   const listing = await getListingById(id)
 
   if (!listing) notFound()
+
+  // Verificar si el usuario está autenticado
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const isTurboActive = listing.turbo_until
     ? new Date(listing.turbo_until) > new Date()
@@ -321,15 +326,25 @@ export default async function ListingDetailPage({ params }: Props) {
                 <ContactForm listingId={listing.id} />
               </div>
 
-              {/* Fuente externa */}
-              {listing.source_url && (
+              {/* Teléfono — visible solo si el usuario está registrado (prioridad sobre enlace) */}
+              {user && listing.phone && (
                 <a
-                  href={listing.source_url}
+                  href={`tel:${listing.phone}`}
+                  className="mt-4 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
+                >
+                  📞 {listing.phone}
+                </a>
+              )}
+
+              {/* Enlace original — siempre abre en nueva pestaña */}
+              {(listing.external_link || listing.source_url) && (
+                <a
+                  href={(listing.external_link ?? listing.source_url)!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 block text-center text-xs text-gray-400 hover:text-gray-600 underline"
+                  className="mt-3 block text-center text-xs text-gray-400 hover:text-gray-600 underline"
                 >
-                  Ver anuncio original →
+                  Ver anuncio original ↗
                 </a>
               )}
             </div>

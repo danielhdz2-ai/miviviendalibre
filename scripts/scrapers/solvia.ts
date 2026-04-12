@@ -330,6 +330,7 @@ async function scrapeSolvia(operation: 'venta' | 'alquiler', maxPages: number) {
         is_bank:       isBankProp,
         bank_entity:   BANK_ENTITY,
         images:        d.images,
+        external_link: it.url,
       }
 
       const ok = await upsertListing(listing)

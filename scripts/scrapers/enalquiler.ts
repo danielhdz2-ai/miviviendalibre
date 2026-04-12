@@ -21,7 +21,7 @@
  *   npx tsx scripts/scrapers/enalquiler.ts madrid 5
  */
 
-import { upsertListing, type ScrapedListing } from './utils'
+import { upsertListing, extractPhone, type ScrapedListing } from './utils'
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -137,6 +137,7 @@ interface DetailData {
   lat: number | null
   lng: number | null
   isParticular: boolean
+  phone: string | null
 }
 
 function parseDetail(html: string, fallbackCity: string, listingId: string): DetailData {
@@ -313,7 +314,7 @@ function parseDetail(html: string, fallbackCity: string, listingId: string): Det
     if (breadM) district = breadM[1].replace(/-/g, ' ')
   }
 
-  return { title, price, area, bedrooms, bathrooms, description, images, district, city: cityResult, address, lat, lng, isParticular }
+  return { title, price, area, bedrooms, bathrooms, description, images, district, city: cityResult, address, lat, lng, isParticular, phone: extractPhone(html) }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -405,6 +406,8 @@ async function main() {
         source_external_id: `enalquiler_${stub.id}`,
         is_particular: true, // La sección "/particular/" solo tiene particulares
         images: detail.images,
+        external_link: stub.url,
+        phone: detail.phone ?? undefined,
       }
 
       const ok = await upsertListing(listing)

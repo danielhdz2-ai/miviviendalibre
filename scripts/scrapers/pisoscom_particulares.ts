@@ -20,7 +20,7 @@
  *   npx tsx scripts/scrapers/pisoscom_particulares.ts alquiler madrid 6
  */
 
-import { upsertListing, type ScrapedListing } from './utils'
+import { upsertListing, extractPhone, type ScrapedListing } from './utils'
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -145,6 +145,7 @@ function parseDetail(html: string): {
   areaUseful: number | null
   referenceId: string | null
   isParticularConfirmed: boolean
+  phone: string | null
 } {
   // ── Verificar que el anunciante es particular ──────────
   const isParticularConfirmed = /Anunciante\s+particular/i.test(html)
@@ -352,6 +353,7 @@ function parseDetail(html: string): {
     areaUseful,
     referenceId,
     isParticularConfirmed,
+    phone: extractPhone(html),
   }
 }
 
@@ -490,6 +492,8 @@ async function scrapeParticulares(
         source_external_id: externalId,
         is_particular:      true,   // Siempre — venimos de /particulares/
         images:             detail.images,
+        external_link:      detailUrl,
+        phone:              detail.phone ?? undefined,
       }
 
       const ok = await upsertListing(listing)

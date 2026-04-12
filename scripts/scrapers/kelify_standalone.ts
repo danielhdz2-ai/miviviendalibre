@@ -59,6 +59,8 @@ interface KelifyListing {
   city: string
   province: string
   images: string[]
+  external_link?: string
+  phone?: string
 }
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -306,6 +308,8 @@ async function upsertToSupabase(listing: KelifyListing, operation: string): Prom
     source_portal: SOURCE,
     published_at: new Date().toISOString(),
     ranking_score: 55, // Kelify pre-filters particulars → slightly higher quality signal
+    external_link: listing.external_link ?? listing.source_url ?? null,
+    phone: listing.phone ?? null,
   }
 
   try {

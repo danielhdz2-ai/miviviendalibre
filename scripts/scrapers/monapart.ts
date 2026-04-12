@@ -166,6 +166,7 @@ async function scrapeListing(context: any, url: string, operation: 'sale' | 'ren
       source_external_id: `monapart_${source_external_id}`,
       is_particular: false,
       images,
+      external_link: url,
     })
 
     await page.close()

@@ -22,7 +22,7 @@
  *   npx tsx scripts/scrapers/milanuncios_particulares.ts alquiler madrid 5
  */
 
-import { upsertListing, type ScrapedListing } from './utils'
+import { upsertListing, extractPhone, type ScrapedListing } from './utils'
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -369,12 +369,12 @@ async function scrapeParticulares(
 
       // ── Construir objeto para upsert ──────────────────
       const listing: ScrapedListing = {
+        title:              `Piso en ${geoInfo.label}`,
         source_portal:      'milanuncios.com',
         source_external_id: `mil_${externalId}`,
-        operation_type:     opLabel as 'rent' | 'sale',
-        property_type:      'apartment',
-        price:              parsed.price,
-        area:               parsed.area ?? undefined,
+        operation:          opLabel as 'rent' | 'sale',
+        price_eur:          parsed.price ?? undefined,
+        area_m2:            parsed.area ?? undefined,
         bedrooms:           parsed.bedrooms ?? undefined,
         bathrooms:          parsed.bathrooms ?? undefined,
         description:        parsed.description ?? undefined,
@@ -386,13 +386,15 @@ async function scrapeParticulares(
         lng:                parsed.lng ?? undefined,
         is_particular:      true,
         source_url:         detailUrl,
+        external_link:      detailUrl,
+        phone:              extractPhone(detailHtml) ?? undefined,
       }
 
       const result = await upsertListing(listing)
-      if (result === 'inserted' || result === 'updated') {
+      if (result) {
         imported++
         const imgs = parsed.images.length
-        console.log(`  ✓particular [${result}] ${parsed.price}€ ${parsed.area ?? '?'}m² ${imgs}📷 — ${detailUrl.split('/').slice(-1)[0]}`)
+        console.log(`  ✓particular [✓] ${parsed.price}€ ${parsed.area ?? '?'}m² ${imgs}📷 — ${detailUrl.split('/').slice(-1)[0]}`)
       } else {
         skipped++
       }

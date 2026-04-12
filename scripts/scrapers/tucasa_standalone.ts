@@ -181,6 +181,8 @@ function extractListings(
       is_particular: false,
       is_bank: false,
       images: images.length > 0 ? images : undefined,
+      external_link: sourceUrl,
+      phone: undefined,
     })
   }
 

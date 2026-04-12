@@ -43,6 +43,8 @@ export interface Listing {
   features: Record<string, string> | null
   is_bank: boolean | null
   bank_entity: string | null
+  external_link: string | null
+  phone: string | null
   listing_images?: ListingImage[]
 }
 

@@ -24,6 +24,8 @@ export interface ScrapedListing {
   images?: string[]
   is_bank?: boolean
   bank_entity?: string
+  external_link: string
+  phone?: string
 }
 
 const SUPABASE_URL = 'https://ktsdxpmaljiyuwimcugx.supabase.co'
@@ -67,6 +69,8 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     published_at: new Date().toISOString(),
     is_bank: listing.is_bank ?? false,
     bank_entity: listing.bank_entity ?? null,
+    external_link: listing.external_link,
+    phone: listing.phone ?? null,
   }
 
   // Intenta INSERT primero
@@ -154,4 +158,28 @@ export function normalizeArea(text: string): number | undefined {
 export function normalizeRooms(text: string): number | undefined {
   const m = text.match(/(\d+)/)
   return m ? parseInt(m[1]) : undefined
+}
+
+/**
+ * Intenta extraer un número de teléfono del HTML de una página de detalle.
+ * Busca en este orden:
+ *   1. href="tel:..." — la fuente más fiable
+ *   2. JSON-LD "telephone"
+ *   3. Patrón de teléfono español (+34 / 6xx / 7xx / 9xx con 9 dígitos)
+ * Devuelve null si no se encuentra ninguno.
+ */
+export function extractPhone(html: string): string | null {
+  // 1. tel: link
+  const telLink = html.match(/href="tel:([+\d\s\-().]{7,16})"/)
+  if (telLink) return telLink[1].replace(/\s/g, '').trim()
+
+  // 2. JSON-LD telephone
+  const jsonTel = html.match(/"telephone"\s*:\s*"([+\d\s\-().]{7,16})"/)
+  if (jsonTel) return jsonTel[1].replace(/\s/g, '').trim()
+
+  // 3. Teléfono español visible en el texto (no dentro de atributos HTML)
+  const spanishPhone = html.match(/(?:^|[\s"'>])(\+?34\s*[679]\d{8}|[679]\d{8})(?=[\s"'<\b])/)
+  if (spanishPhone) return spanishPhone[1].replace(/\s/g, '').trim()
+
+  return null
 }

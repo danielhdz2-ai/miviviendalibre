@@ -55,6 +55,8 @@ interface MitulaListing {
   city: string
   province: string
   image_url: string | null
+  external_link?: string
+  phone?: string
 }
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -282,6 +284,8 @@ async function upsertToSupabase(listing: MitulaListing, operation: string): Prom
     source_portal: SOURCE,
     published_at: new Date().toISOString(),
     ranking_score: 50,
+    external_link: listing.external_link ?? listing.source_url ?? null,
+    phone: listing.phone ?? null,
   }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {

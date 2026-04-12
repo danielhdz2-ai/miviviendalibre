@@ -228,6 +228,7 @@ async function scrapeGilmar(filterOp: 'venta' | 'alquiler' | 'all', maxItems: nu
         source_external_id: String(item.id),
         is_particular: false,
         images: detail.images,
+        external_link: item.link,
       }
 
       const ok = await upsertListing(listing)
