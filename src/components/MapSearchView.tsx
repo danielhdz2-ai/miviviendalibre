@@ -62,7 +62,15 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
   const listRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef<Record<string, HTMLAnchorElement | null>>({})
 
-  const withCoords = listings.filter((l) => l.lat != null && l.lng != null)
+  // Añadir coords de ciudad como fallback para listings sin lat/lng exacto
+  const listingsWithCoords = listings.map((l) => {
+    if (l.lat != null && l.lng != null) return l
+    const cityKey = l.city?.toLowerCase().trim() ?? ''
+    const fallback = CIUDAD_COORDS[cityKey]
+    if (!fallback) return l
+    return { ...l, lat: fallback[0] + (Math.random() - 0.5) * 0.01, lng: fallback[1] + (Math.random() - 0.5) * 0.01, _cityFallback: true }
+  })
+  const withCoords = listingsWithCoords.filter((l) => l.lat != null && l.lng != null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function createPriceIcon(L: any, listing: Listing, isActive: boolean) {
@@ -107,7 +115,7 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
 
     withCoords.forEach((listing) => {
       const icon = createPriceIcon(L, listing, false)
-      const marker = L.marker([listing.lat!, listing.lng!], { icon })
+      const marker = L.marker([listing.lat!, listing.lng!], { icon, opacity: (listing as Record<string, unknown>)._cityFallback ? 0.7 : 1 })
       marker.on('click', () => {
         setActiveId(listing.id)
         const el = cardRefs.current[listing.id]
@@ -172,11 +180,10 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
         {listings.length === 0 ? (
           <div className="text-center py-16 text-gray-400 text-sm">No hay resultados con los filtros actuales</div>
         ) : (
-          listings.map((listing) => {
+          listingsWithCoords.map((listing) => {
             const img = listing.listing_images?.[0]
             const imgUrl = img?.storage_path ?? img?.external_url ?? null
             const isActive = listing.id === activeId
-            const hasCoords = listing.lat != null && listing.lng != null
 
             return (
               <Link
@@ -190,7 +197,7 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
                     ? 'border-blue-200 hover:border-blue-300'
                     : 'border-gray-100 hover:border-gray-200'
                 }`}
-                onMouseEnter={() => { if (hasCoords) setActiveId(listing.id) }}
+                onMouseEnter={() => { if (listingsWithCoords.find(l => l.id === listing.id)?.lat != null) setActiveId(listing.id) }}
                 onMouseLeave={() => setActiveId(null)}
               >
                 {/* Imagen */}
@@ -275,7 +282,7 @@ export default function MapSearchView({ listings, total, ciudad }: Props) {
 
         {listings.length > 0 && (
           <p className="text-xs text-gray-300 text-center py-2">
-            {withCoords.length} de {listings.length} con ubicación exacta
+            {withCoords.length} de {listings.length} en el mapa
           </p>
         )}
       </div>
