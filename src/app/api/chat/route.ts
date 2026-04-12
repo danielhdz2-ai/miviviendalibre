@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-flash',
       systemInstruction: SYSTEM_PROMPT,
     })
 
@@ -104,6 +104,13 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[chat/route] Gemini error:', msg)
-    return NextResponse.json({ error: `Error en la IA: ${msg}` }, { status: 500 })
+    // Cuota agotada → mensaje amigable sin exponer detalles internos
+    if (msg.includes('429') || msg.includes('quota') || msg.includes('Too Many Requests')) {
+      return NextResponse.json(
+        { error: 'El asistente IA está ocupado. Inténtalo de nuevo en unos segundos.' },
+        { status: 429 }
+      )
+    }
+    return NextResponse.json({ error: 'El asistente no está disponible ahora mismo.' }, { status: 500 })
   }
 }
