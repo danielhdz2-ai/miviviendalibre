@@ -36,6 +36,44 @@ const AGENCY_PORTALS = new Set([
   'servihabitat', 'habitaclia', 'fotocasa',
 ])
 
+// ── Blacklist de palabras que revelan anunciante de agencia ───────────────────
+// Se chequean contra título + descripción (lowercased). Si hay match → is_particular=false.
+const AGENCY_TEXT_PATTERNS = [
+  // Términos operativos de agencia
+  /\binmobiliaria\b/,
+  /\bagencia\s+inmobiliaria\b/,
+  /\bhonorarios\b/,
+  /\bgastos\s+de\s+gesti[oó]n\b/,
+  /\bcomisi[oó]n\s+de\s+(agencia|intermediaci[oó]n)\b/,
+  /\basesor\s+inmobiliario\b/,
+  /\bconsulting\s+inmobiliario\b/,
+  /\bpuntos\s+de\s+venta\b/,
+  // Emails corporativos
+  /\b(info|ventas|contacto|alquiler|pisos|arrendamiento)@[a-z0-9.\-]+\.[a-z]{2,}/,
+  // Franquicias y cadenas conocidas
+  /\bfinques\s+\w+/,
+  /\bre\/?max\b/,
+  /\bcentury\s*21\b/,
+  /\bera\s+inmobiliaria\b/,
+  /\bdonpiso\b/,
+  /\bhousell\b/,
+  /\bengel\s*&\s*v[oö]lkers\b/,
+  /\bcoldwell\s+banker\b/,
+  /\bkeller\s+williams\b/,
+  /\balquiler\s+seguro\b/,
+  /\bamat\s+inmobiliaris\b/,
+  /\bbcn\s+advisors\b/,
+]
+
+/**
+ * Devuelve true si el texto (título+descripción) contiene indicios de agencia.
+ * Usado como último blindaje antes del upsert.
+ */
+function looksLikeAgency(title: string, description?: string): boolean {
+  const text = `${title} ${description ?? ''}`.toLowerCase()
+  return AGENCY_TEXT_PATTERNS.some((re) => re.test(text))
+}
+
 // Pega aquí tu service_role key de Supabase (Settings → API)
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? ''
 
@@ -131,9 +169,18 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
   // ── Paso 3: Prioridad Particular ──────────────────────────────────────────
   // Portales de agencia → forzar is_particular=false sin excepción
   const fromAgencyPortal = AGENCY_PORTALS.has(listing.source_portal.toLowerCase())
+  // Texto del anuncio delata agencia → forzar false aunque venga de URL /particulares/
+  const textRevealsAgency = listing.is_particular
+    ? looksLikeAgency(listing.title, listing.description)
+    : false
   // Si el anuncio existente era de agencia pero el nuevo es de particular → promover
   // Nunca degradar: si ya es particular, se queda particular
-  const isParticular = fromAgencyPortal ? false : (listing.is_particular || existingIsParticular)
+  const isParticular = (fromAgencyPortal || textRevealsAgency)
+    ? false
+    : (listing.is_particular || existingIsParticular)
+  if (textRevealsAgency) {
+    console.log(`  🚫 [AGENCIA detectada por texto] ${listing.title.slice(0, 60)}`)
+  }
   if (listing.is_particular && !existingIsParticular && listingId) {
     console.log(`  ⭐ Promovido a "Directo de Particular"`)
   }
