@@ -288,10 +288,10 @@ export default async function ListingDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* Columna derecha: precio + contacto */}
-          <div className="space-y-4">
+          {/* Columna derecha: sticky completo */}
+          <div className="space-y-4 sticky top-20 self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto pb-4">
             {/* Tarjeta de precio */}
-            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm sticky top-20">
+            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
               {/* Badges */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {isTurboActive && (
