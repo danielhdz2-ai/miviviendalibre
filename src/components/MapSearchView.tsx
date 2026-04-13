@@ -98,7 +98,9 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
     if (!fallback) return l
     return { ...l, lat: fallback[0] + (Math.random() - 0.5) * 0.01, lng: fallback[1] + (Math.random() - 0.5) * 0.01, _cityFallback: true }
   })
-  const withCoords = listingsWithCoords.filter((l) => l.lat != null && l.lng != null)
+  const withCoords = listingsWithCoords.filter(
+    (l) => l.lat != null && l.lng != null && !(l as Record<string, unknown>)._cityFallback
+  )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function createPriceIcon(L: any, listing: Listing, isActive: boolean) {
@@ -319,14 +321,14 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
                     </p>
 
                     {/* Título */}
-                    <p className="text-xs text-gray-600 line-clamp-2 leading-snug mt-0.5">
+                    <p className="text-sm text-gray-700 line-clamp-2 leading-snug mt-0.5 font-medium">
                       {listing.title}
                     </p>
                   </div>
 
                   {/* Stats */}
                   <div className="mt-1.5">
-                    <div className="flex gap-2.5 text-xs text-gray-500 flex-wrap">
+                    <div className="flex gap-2.5 text-xs text-gray-600 flex-wrap">
                       {listing.bedrooms != null && (
                         <span className="flex items-center gap-0.5">
                           <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -355,7 +357,7 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
 
                     {/* Localización */}
                     {listing.city && (
-                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
                         📍 {[listing.district, listing.city].filter(Boolean).join(', ')}
                       </p>
                     )}
