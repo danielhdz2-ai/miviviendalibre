@@ -286,10 +286,10 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
       {/* ── Columna 2: Lista de inmuebles ───────────────────────── */}
       <div
         ref={listRef}
-        className="w-[400px] xl:w-[460px] shrink-0 overflow-y-auto flex flex-col gap-2.5 p-3 bg-white border-r border-gray-100"
+        className="w-[340px] xl:w-[380px] shrink-0 overflow-y-auto flex flex-col gap-3 p-3 bg-gray-50 border-r border-gray-200"
       >
         {/* Contador */}
-        <p className="text-xs text-gray-500 font-medium px-1 pb-1 border-b border-gray-100">
+        <p className="text-xs text-gray-500 font-medium px-1 pb-1 border-b border-gray-200">
           {total != null ? `+${total.toLocaleString('es-ES')} resultados` : `${listings.length} resultados`}
         </p>
 
@@ -307,99 +307,77 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
                 key={listing.id}
                 href={`/pisos/${listing.id}`}
                 ref={(el) => { cardRefs.current[listing.id] = el }}
-                className={`flex bg-white rounded-xl overflow-hidden border transition-all duration-150 hover:shadow-lg ${
+                className={`block bg-white rounded-2xl overflow-hidden border transition-all duration-150 hover:shadow-xl hover:-translate-y-0.5 ${
                   isActive
-                    ? 'border-[#c9962a] shadow-[#c9962a]/30 shadow-lg ring-1 ring-[#c9962a]/40'
+                    ? 'border-[#c9962a] shadow-[#c9962a]/40 shadow-xl ring-2 ring-[#c9962a]/30'
                     : listing.is_bank
-                    ? 'border-blue-200 hover:border-blue-300 shadow-sm'
-                    : 'border-gray-100 hover:border-[#c9962a]/40 shadow-sm'
+                    ? 'border-blue-200 shadow-sm'
+                    : 'border-gray-100 shadow-sm hover:border-[#c9962a]/40'
                 }`}
                 onMouseEnter={() => { if (listingsWithCoords.find(l => l.id === listing.id)?.lat != null) setActiveId(listing.id) }}
                 onMouseLeave={() => setActiveId(null)}
               >
-                {/* Imagen */}
-                <div className="w-[150px] shrink-0 self-stretch bg-gray-100 overflow-hidden relative" style={{ minHeight: '130px' }}>
+                {/* Imagen — arriba, panorámica */}
+                <div className="relative w-full h-44 bg-gray-100 overflow-hidden">
                   {imgUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imgUrl} alt="" className="w-full h-full object-cover absolute inset-0" />
+                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full absolute inset-0 flex items-center justify-center bg-gray-50">
-                      <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                      <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       </svg>
                     </div>
                   )}
-                  {/* Badge operación sobre la imagen */}
-                  <span className={`absolute bottom-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                  {/* Badge operación */}
+                  <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded-full ${
                     listing.operation === 'rent' ? 'bg-sky-600 text-white' : 'bg-orange-500 text-white'
                   }`}>
-                    {listing.operation === 'rent' ? 'ALQ' : 'VENTA'}
+                    {listing.operation === 'rent' ? 'Alquiler' : 'Venta'}
                   </span>
+                  {/* Badge particular */}
+                  {listing.is_particular && (
+                    <span className="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      💎 Particular
+                    </span>
+                  )}
+                  {listing.is_bank && (
+                    <span className="absolute top-2 right-2 bg-blue-900 text-yellow-300 text-xs font-bold px-2 py-1 rounded-full">
+                      🏦 Banco
+                    </span>
+                  )}
                 </div>
 
-                {/* Info */}
-                <div className="flex-1 px-3 py-3 min-w-0 flex flex-col justify-between">
+                {/* Info — abajo */}
+                <div className="p-3">
                   {/* Precio */}
-                  <div>
-                    <p className={`font-extrabold text-lg leading-tight ${isActive ? 'text-[#c9962a]' : 'text-gray-900'}`}>
-                      {formatPriceFull(listing.price_eur, listing.operation)}
-                    </p>
+                  <p className={`font-extrabold text-xl leading-tight ${isActive ? 'text-[#c9962a]' : 'text-gray-900'}`}>
+                    {formatPriceFull(listing.price_eur, listing.operation)}
+                  </p>
 
-                    {/* Título */}
-                    <p className="text-sm text-gray-700 line-clamp-2 leading-snug mt-0.5 font-medium">
-                      {listing.title}
+                  {/* Título */}
+                  <p className="text-sm font-medium text-gray-700 line-clamp-1 mt-1">
+                    {listing.title}
+                  </p>
+
+                  {/* Localización */}
+                  {listing.city && (
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      📍 {[listing.district, listing.city].filter(Boolean).join(', ')}
                     </p>
-                  </div>
+                  )}
 
                   {/* Stats */}
-                  <div className="mt-1.5">
-                    <div className="flex gap-2.5 text-xs text-gray-600 flex-wrap">
-                      {listing.bedrooms != null && (
-                        <span className="flex items-center gap-0.5">
-                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                          </svg>
-                          {listing.bedrooms === 0 ? 'Est.' : `${listing.bedrooms} hab`}
-                        </span>
-                      )}
-                      {listing.bathrooms != null && (
-                        <span className="flex items-center gap-0.5">
-                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                          </svg>
-                          {listing.bathrooms} baño{listing.bathrooms !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                      {listing.area_m2 != null && (
-                        <span className="flex items-center gap-0.5">
-                          <svg className="w-3 h-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                          </svg>
-                          {listing.area_m2} m²
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Localización */}
-                    {listing.city && (
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                        📍 {[listing.district, listing.city].filter(Boolean).join(', ')}
-                      </p>
+                  <div className="flex gap-3 mt-2 text-sm text-gray-600">
+                    {listing.bedrooms != null && (
+                      <span>🛏 {listing.bedrooms === 0 ? 'Estudio' : `${listing.bedrooms} hab`}</span>
                     )}
-
-                    {/* Badges */}
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {listing.is_particular && (
-                        <span className="inline-flex items-center bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                          ✓ PROPIETARIO
-                        </span>
-                      )}
-                      {listing.is_bank && (
-                        <span className="inline-flex items-center bg-blue-900 text-yellow-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                          🏦 BANCO
-                        </span>
-                      )}
-                    </div>
+                    {listing.bathrooms != null && (
+                      <span>🚿 {listing.bathrooms}</span>
+                    )}
+                    {listing.area_m2 != null && (
+                      <span>📐 {listing.area_m2} m²</span>
+                    )}
                   </div>
                 </div>
               </Link>
