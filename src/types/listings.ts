@@ -45,6 +45,7 @@ export interface Listing {
   bank_entity: string | null
   external_link: string | null
   phone: string | null
+  advertiser_name: string | null
   listing_images?: ListingImage[]
 }
 

@@ -7,6 +7,7 @@ import MapWrapper from './MapWrapper'
 import ViewTracker from './ViewTracker'
 import ListingGallery from '@/components/ListingGallery'
 import DescriptionExpand from './DescriptionExpand'
+import RevealContact from './RevealContact'
 import { getListingById } from '@/lib/listings'
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
@@ -326,18 +327,15 @@ export default async function ListingDetailPage({ params }: Props) {
                 <ContactForm listingId={listing.id} />
               </div>
 
-              {/* Teléfono — visible solo si el usuario está registrado (prioridad sobre enlace) */}
-              {user && listing.phone && (
-                <a
-                  href={`tel:${listing.phone}`}
-                  className="mt-4 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
-                >
-                  📞 {listing.phone}
-                </a>
-              )}
+              {/* Teléfono — revelación progresiva, requiere registro */}
+              <RevealContact
+                listingId={listing.id}
+                isParticular={listing.is_particular}
+                isLoggedIn={!!user}
+              />
 
-              {/* Enlace original — siempre abre en nueva pestaña */}
-              {(listing.external_link || listing.source_url) && (
+              {/* Enlace original — solo visible para usuarios con cuenta */}
+              {user && (listing.external_link || listing.source_url) && (
                 <a
                   href={(listing.external_link ?? listing.source_url)!}
                   target="_blank"

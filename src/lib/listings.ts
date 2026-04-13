@@ -3,6 +3,18 @@ import type { Listing, SearchParams } from '@/types/listings'
 
 const PAGE_SIZE = 24
 
+// Campos públicos para lista/mapa — NO incluye phone, external_link, source_url
+const PUBLIC_LISTING_FIELDS = [
+  'id', 'origin', 'owner_user_id', 'operation', 'title', 'description',
+  'price_eur', 'province', 'city', 'district', 'postal_code',
+  'lat', 'lng', 'bedrooms', 'bathrooms', 'area_m2',
+  'source_portal', 'source_external_id',
+  'is_particular', 'particular_confidence', 'ranking_score',
+  'turbo_until', 'status', 'views_count', 'published_at', 'created_at', 'updated_at',
+  'features', 'is_bank', 'bank_entity', 'advertiser_name',
+  'listing_images(id, storage_path, external_url, position)',
+].join(', ')
+
 export async function searchListings(params: SearchParams): Promise<{
   listings: Listing[]
   total: number
@@ -14,7 +26,7 @@ export async function searchListings(params: SearchParams): Promise<{
 
   let query = supabase
     .from('listings')
-    .select('*, listing_images(id, storage_path, external_url, position)', { count: 'exact' })
+    .select(PUBLIC_LISTING_FIELDS, { count: 'exact' })
     .eq('status', 'published')
     .range(from, to)
 
@@ -95,7 +107,8 @@ export async function searchListings(params: SearchParams): Promise<{
   }
 
   // Ordenar imágenes por position
-  const listings = (data ?? []).map((l) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listings = ((data ?? []) as any[]).map((l) => ({
     ...l,
     listing_images: (l.listing_images ?? []).sort(
       (a: { position: number }, b: { position: number }) => a.position - b.position

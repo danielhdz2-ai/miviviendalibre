@@ -21,11 +21,12 @@ export interface ScrapedListing {
   source_url: string
   source_external_id: string
   is_particular: boolean
+  advertiser_name?: string   // nombre pila (particular) o marca comercial (agencia)
   images?: string[]
   is_bank?: boolean
   bank_entity?: string
   external_link: string
-  phone?: string
+  phone?: string             // siempre guardar, incluso para agencias
 }
 
 const SUPABASE_URL = 'https://ktsdxpmaljiyuwimcugx.supabase.co'
@@ -72,6 +73,53 @@ const AGENCY_TEXT_PATTERNS = [
 function looksLikeAgency(title: string, description?: string): boolean {
   const text = `${title} ${description ?? ''}`.toLowerCase()
   return AGENCY_TEXT_PATTERNS.some((re) => re.test(text))
+}
+
+// Formas societarias que revelan empresa (→ is_particular = false)
+const CORPORATE_SUFFIXES = /\b(s\.?l\.?|s\.?a\.?|s\.?l\.?u\.?|s\.?l\.?l\.?|s\.?c\.?|s\.?c\.?p\.?|sociedad\s+limitada|sociedad\s+an[oó]nima)\b/i
+
+/**
+ * Normaliza el nombre del anunciante:
+ * - Si es particular: devuelve el primer nombre o "Propietario Particular"
+ * - Si es agencia: devuelve la marca comercial o "Agencia en {portal}"
+ * También detecta sufijos societarios S.L./S.A. → fuerza is_particular=false
+ */
+export function sanitizeAdvertiserName(
+  rawName: string | undefined,
+  isParticular: boolean,
+  sourcePortal: string,
+): { name: string; forceAgency: boolean } {
+  if (!rawName || rawName.trim() === '') {
+    return {
+      name: isParticular ? 'Propietario Particular' : `Agencia en ${sourcePortal}`,
+      forceAgency: false,
+    }
+  }
+
+  const trimmed = rawName.trim()
+
+  // Detectar sufijos societarios → siempre agencia
+  const hasCorporateSuffix = CORPORATE_SUFFIXES.test(trimmed)
+
+  if (isParticular && !hasCorporateSuffix) {
+    // Extraer primer nombre de pila
+    const genericNames = /^(particular|propietario|propietaria|owner|vendedor|vendedora|anunciante)$/i
+    const firstName = trimmed.split(/\s+/)[0]
+    const name = genericNames.test(trimmed) || genericNames.test(firstName)
+      ? 'Propietario Particular'
+      : firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
+    return { name, forceAgency: false }
+  }
+
+  // Agencia: devolver nombre en title case limpio, sin términos como "Anunciante:" al inicio
+  const cleaned = trimmed
+    .replace(/^(anunciante|agente|agencia|inmobiliaria)\s*:?\s*/i, '')
+    .trim()
+  const name = cleaned !== ''
+    ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+    : `Agencia en ${sourcePortal}`
+
+  return { name, forceAgency: hasCorporateSuffix }
 }
 
 // Pega aquí tu service_role key de Supabase (Settings → API)
@@ -173,13 +221,17 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
   const textRevealsAgency = listing.is_particular
     ? looksLikeAgency(listing.title, listing.description)
     : false
+  // Nombre del anunciante con sufijo societario → forzar false
+  const { name: advertiserName, forceAgency: nameRevealsAgency } = sanitizeAdvertiserName(
+    listing.advertiser_name, listing.is_particular, listing.source_portal
+  )
   // Si el anuncio existente era de agencia pero el nuevo es de particular → promover
   // Nunca degradar: si ya es particular, se queda particular
-  const isParticular = (fromAgencyPortal || textRevealsAgency)
+  const isParticular = (fromAgencyPortal || textRevealsAgency || nameRevealsAgency)
     ? false
     : (listing.is_particular || existingIsParticular)
-  if (textRevealsAgency) {
-    console.log(`  🚫 [AGENCIA detectada por texto] ${listing.title.slice(0, 60)}`)
+  if (textRevealsAgency || nameRevealsAgency) {
+    console.log(`  🚫 [AGENCIA detectada por ${textRevealsAgency ? 'texto' : 'nombre'}] ${listing.title.slice(0, 60)}`)
   }
   if (listing.is_particular && !existingIsParticular && listingId) {
     console.log(`  ⭐ Promovido a "Directo de Particular"`)
@@ -194,6 +246,7 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     operation: listing.operation,
     title: listing.title,
     description: listing.description ?? null,
+    advertiser_name: advertiserName,
     price_eur: listing.price_eur ?? null,
     province: listing.province ?? null,
     city: listing.city ?? null,
@@ -212,7 +265,7 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     is_bank: listing.is_bank ?? false,
     bank_entity: listing.bank_entity ?? null,
     external_link: listing.external_link,
-    phone: listing.phone ?? null,
+    phone: listing.phone ?? null,  // siempre guardar aunque sea agencia
   }
 
   // ── Paso 4: PATCH si existe, INSERT si no ─────────────────────────────────
