@@ -279,17 +279,17 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
     <div className="flex h-[calc(100vh-128px)] min-h-[500px]">
 
       {/* ── Columna 1: Buscador IA ──────────────────────────────── */}
-      <div className="w-72 shrink-0 hidden lg:flex flex-col border-r border-gray-200">
+      <div className="w-64 shrink-0 hidden xl:flex flex-col border-r border-gray-200">
         <IASearchSidebar />
       </div>
 
       {/* ── Columna 2: Lista de inmuebles ───────────────────────── */}
       <div
         ref={listRef}
-        className="w-[340px] xl:w-[380px] shrink-0 overflow-y-auto flex flex-col gap-3 p-3 bg-gray-50 border-r border-gray-200"
+        className="w-[420px] xl:w-[460px] shrink-0 overflow-y-auto flex flex-col gap-2 px-2 py-2 bg-white border-r border-gray-200"
       >
         {/* Contador */}
-        <p className="text-xs text-gray-500 font-medium px-1 pb-1 border-b border-gray-200">
+        <p className="text-xs text-gray-400 px-1 py-1">
           {total != null ? `+${total.toLocaleString('es-ES')} resultados` : `${listings.length} resultados`}
         </p>
 
@@ -307,76 +307,90 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
                 key={listing.id}
                 href={`/pisos/${listing.id}`}
                 ref={(el) => { cardRefs.current[listing.id] = el }}
-                className={`block bg-white rounded-2xl overflow-hidden border transition-all duration-150 hover:shadow-xl hover:-translate-y-0.5 ${
+                style={{ height: '160px' }}
+                className={`flex bg-white rounded-xl overflow-hidden border transition-shadow duration-150 hover:shadow-md ${
                   isActive
-                    ? 'border-[#c9962a] shadow-[#c9962a]/40 shadow-xl ring-2 ring-[#c9962a]/30'
+                    ? 'border-[#c9962a] shadow-md ring-2 ring-[#c9962a]/30'
                     : listing.is_bank
-                    ? 'border-blue-200 shadow-sm'
-                    : 'border-gray-100 shadow-sm hover:border-[#c9962a]/40'
+                    ? 'border-blue-200'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
                 onMouseEnter={() => { if (listingsWithCoords.find(l => l.id === listing.id)?.lat != null) setActiveId(listing.id) }}
                 onMouseLeave={() => setActiveId(null)}
               >
-                {/* Imagen — arriba, panorámica */}
-                <div className="relative w-full h-44 bg-gray-100 overflow-hidden">
+                {/* Imagen izquierda — ancho fijo */}
+                <div className="relative shrink-0 bg-gray-100 overflow-hidden" style={{ width: '180px', height: '160px' }}>
                   {imgUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                    <img src={imgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                    <div className="absolute inset-0 flex items-center justify-center">
                       <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       </svg>
                     </div>
                   )}
-                  {/* Badge operación */}
-                  <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded-full ${
+                  <span className={`absolute bottom-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded leading-none ${
                     listing.operation === 'rent' ? 'bg-sky-600 text-white' : 'bg-orange-500 text-white'
                   }`}>
-                    {listing.operation === 'rent' ? 'Alquiler' : 'Venta'}
+                    {listing.operation === 'rent' ? 'ALQUILER' : 'VENTA'}
                   </span>
-                  {/* Badge particular */}
-                  {listing.is_particular && (
-                    <span className="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                      💎 Particular
-                    </span>
-                  )}
-                  {listing.is_bank && (
-                    <span className="absolute top-2 right-2 bg-blue-900 text-yellow-300 text-xs font-bold px-2 py-1 rounded-full">
-                      🏦 Banco
-                    </span>
-                  )}
                 </div>
 
-                {/* Info — abajo */}
-                <div className="p-3">
-                  {/* Precio */}
-                  <p className={`font-extrabold text-xl leading-tight ${isActive ? 'text-[#c9962a]' : 'text-gray-900'}`}>
-                    {formatPriceFull(listing.price_eur, listing.operation)}
-                  </p>
+                {/* Info derecha */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between px-3 py-2.5">
+                  {/* Precio + badges */}
+                  <div>
+                    <div className="flex items-start justify-between gap-1">
+                      <p className={`font-bold text-lg leading-tight ${isActive ? 'text-[#c9962a]' : 'text-gray-900'}`}>
+                        {formatPriceFull(listing.price_eur, listing.operation)}
+                      </p>
+                      <div className="flex gap-1 shrink-0">
+                        {listing.is_particular && (
+                          <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none whitespace-nowrap">
+                            PARTICULAR
+                          </span>
+                        )}
+                        {listing.is_bank && (
+                          <span className="bg-blue-100 text-blue-800 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">
+                            BANCO
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Título */}
-                  <p className="text-sm font-medium text-gray-700 line-clamp-1 mt-1">
-                    {listing.title}
-                  </p>
-
-                  {/* Localización */}
-                  {listing.city && (
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">
-                      📍 {[listing.district, listing.city].filter(Boolean).join(', ')}
+                    {/* Título */}
+                    <p className="text-sm text-gray-700 line-clamp-2 leading-snug mt-1">
+                      {listing.title}
                     </p>
-                  )}
+                  </div>
 
-                  {/* Stats */}
-                  <div className="flex gap-3 mt-2 text-sm text-gray-600">
-                    {listing.bedrooms != null && (
-                      <span>🛏 {listing.bedrooms === 0 ? 'Estudio' : `${listing.bedrooms} hab`}</span>
-                    )}
-                    {listing.bathrooms != null && (
-                      <span>🚿 {listing.bathrooms}</span>
-                    )}
-                    {listing.area_m2 != null && (
-                      <span>📐 {listing.area_m2} m²</span>
+                  {/* Stats + ubicación */}
+                  <div>
+                    <div className="flex gap-3 text-sm text-gray-600 flex-wrap">
+                      {listing.bedrooms != null && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-gray-400">🛏</span>
+                          {listing.bedrooms === 0 ? 'Estudio' : `${listing.bedrooms} hab.`}
+                        </span>
+                      )}
+                      {listing.area_m2 != null && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-gray-400">📐</span>
+                          {listing.area_m2} m²
+                        </span>
+                      )}
+                      {listing.bathrooms != null && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-gray-400">🚿</span>
+                          {listing.bathrooms}
+                        </span>
+                      )}
+                    </div>
+                    {listing.city && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {[listing.district, listing.city].filter(Boolean).join(', ')}
+                      </p>
                     )}
                   </div>
                 </div>
