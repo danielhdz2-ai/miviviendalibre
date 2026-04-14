@@ -34,7 +34,9 @@ const SUPABASE_URL = 'https://ktsdxpmaljiyuwimcugx.supabase.co'
 // Portales que son 100% agencias — nunca marcar como particular
 const AGENCY_PORTALS = new Set([
   'tecnocasa', 'redpiso', 'gilmar', 'solvia', 'aliseda', 'monapart',
-  'servihabitat', 'habitaclia', 'fotocasa',
+  'servihabitat', 'habitaclia',
+  // fotocasa: NO incluir aquí — fotocasa_particulares.ts lo usa con commercial=0
+  // y tiene su propia lógica de verificación de anunciante
 ])
 
 // ── Blacklist de palabras que revelan anunciante de agencia ───────────────────

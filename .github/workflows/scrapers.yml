@@ -31,6 +31,7 @@ on:
           - gilmar
           - pisoscom_particulares
           - milanuncios_particulares
+          - fotocasa_particulares
           - solvia
           - aliseda
       max:
@@ -417,6 +418,86 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
+  # ─── 🏠 Fotocasa Particulares ───────────────────────────────────────────
+  fotocasa_particulares:
+    name: "🏠 [Fotocasa] ${{ matrix.city }} — Venta"
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'fotocasa_particulares' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        city: [madrid, barcelona, valencia, sevilla, zaragoza, malaga]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium (si no está en caché)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx --yes playwright install chromium --with-deps
+
+      - name: Instalar dependencias SO de Chromium (siempre)
+        run: npx --yes playwright install-deps chromium
+
+      - name: 🤖 Ejecutar scraper
+        run: |
+          npx --yes tsx scripts/scrapers/fotocasa_particulares.ts \
+            venta \
+            ${{ matrix.city }} \
+            3
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar Chromium (si no está en caché)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx --yes playwright install chromium --with-deps
+
+      - name: Instalar dependencias SO de Chromium (siempre)
+        run: npx --yes playwright install-deps chromium
+
+      - name: 🤖 Ejecutar scraper
+        run: |
+          npx --yes tsx scripts/scrapers/milanuncios_particulares.ts \
+            venta \
+            ${{ matrix.city }} \
+            5
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # POST-PROCESO
 # ══════════════════════════════════════════════════════════════════════════════
@@ -432,6 +513,7 @@ jobs:
       - gilmar
       - pisoscom_particulares
       - milanuncios_particulares
+      - fotocasa_particulares
       - solvia
       - aliseda
     if: always()
@@ -449,6 +531,7 @@ jobs:
           echo "| 🏢 Gilmar | Agencia | ${{ needs.gilmar.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏠 pisos.com Particulares | Particular (solo venta) | ${{ needs.pisoscom_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🔥 Milanuncios Particulares | Particular (solo venta) | ${{ needs.milanuncios_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏠 Fotocasa Particulares | Particular (solo venta) | ${{ needs.fotocasa_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏦 Solvia (Banco Sabadell) | Banca | ${{ needs.solvia.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏦 Aliseda (Santander/Blackstone) | Banca | ${{ needs.aliseda.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -466,6 +549,7 @@ jobs:
       - gilmar
       - pisoscom_particulares
       - milanuncios_particulares
+      - fotocasa_particulares
       - solvia
       - aliseda
     if: always() && needs.tecnocasa.result != 'cancelled'
