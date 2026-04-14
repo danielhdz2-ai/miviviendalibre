@@ -138,10 +138,11 @@ function parseDetailPage(html: string, sourceUrl: string): {
 
   // ── Precio ─────────────────────────────────────────────────────────────────
   let price: number | null = null
-  // Patrones: "220.000 €", "80.000€", "Desde 50.000 €", "1.200.000 €"
+  // Patrones: JSON embebido "precio":259000, "220.000 €", "Desde 50.000 €"
   const pricePats = [
-    /(?:Desde\s+|Precio de salida\s*)?([\d]{1,3}(?:\.[\d]{3})+)\s*€/,
-    /[\s"'>](\d{4,7})\s*€/,
+    /"precio"\s*:\s*(\d{5,8})/,                                   // JSON inline: "precio":259000
+    /(?:Desde\s+|Precio de salida\s*)?(\d{1,3}(?:\.\d{3})+)\s*€/, // formato ES: 264.000 €
+    /[\s"'>](\d{4,7})\s*€/,                                        // fallback numérico
   ]
   for (const p of pricePats) {
     const pm = html.match(p)
@@ -241,10 +242,11 @@ function parseDetailPage(html: string, sourceUrl: string): {
   const imgRe = /https:\/\/cdnsolvproep\.solvia\.es\/uploaded\/([^"'\s\\]+)/g
   let im: RegExpExecArray | null
   while ((im = imgRe.exec(html))) {
-    const raw = im[0]
-    // Normalizar a .ORIGINAL.jpg (máxima calidad)
-    const normalized = raw.replace(/\.(ORIGINAL|jpg|jpeg|png|webp)/i, '.ORIGINAL.jpg')
-      .split('?')[0]
+    const raw = im[0].split('?')[0]
+    // Normalizar a .ORIGINAL.jpg solo si no lo es ya (evita .ORIGINAL.jpg.jpg)
+    const normalized = /\.ORIGINAL\.jpg$/i.test(raw)
+      ? raw
+      : raw.replace(/\.[a-z]{3,4}$/i, '.ORIGINAL.jpg')
     if (!seenImgs.has(normalized)) {
       seenImgs.add(normalized)
       images.push(normalized)
