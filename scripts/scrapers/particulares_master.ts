@@ -87,62 +87,14 @@ function extractJsonLdListings(
 }
 
 /**
- * REGLA DE ORO — pisos.com marca explícitamente a los particulares con la
- * etiqueta "Anunciante particular" en el bloque de contacto (.owner-data).
+ * pisos.com marca explícitamente a los particulares con la etiqueta
+ * "Anunciante particular" en el bloque de contacto.
  *
- * Decisión BINARIA:
- *   ✅ Existe "Anunciante particular"  →  true
- *   ❌ NO existe                       →  false  (aunque ponga nombre de persona)
- *
- * Doble check: incluso con la badge, si el nombre del anunciante contiene
- * señales corporativas (Inmo, Finques, S.L., etc.) → false.
- * Cubre el caso de agencias que sortean el filtro de pisos.com.
+ * Regla: si el portal dice particular → es particular.
+ * Confiamos en la señal del portal sin override por nombre del anunciante.
  */
 function isParticularListing(html: string): boolean {
-  // ── PASO 1: buscar la badge explícita de pisos.com ─────────────────────────
-  // pisos.com renderiza "Anunciante particular" como texto visible en el bloque
-  // de contacto. Sin esta etiqueta → no es particular para nosotros.
-  if (!/anunciante\s+particular/i.test(html)) return false
-
-  // ── PASO 2: doble check — nombre corporativo aunque tenga la badge ─────────
-  // Extraer el nombre del anunciante del bloque de contacto (.owner-data / similar)
-  // Usamos strip de tags para cruzar la estructura HTML
-  let advertiserName = ''
-
-  // Estrategia A: atributo data- (más fiable cuando pisos.com lo inyecta)
-  const dataAttr = html.match(/data-(?:advertiser|publisher|owner|contact)-name="([^"]{2,80})"/i)
-  if (dataAttr) advertiserName = dataAttr[1].trim()
-
-  // Estrategia B: texto dentro del bloque de clase owner-data / contact-info
-  if (!advertiserName) {
-    const ownerBlock = html.match(/class="[^"]*(?:owner-data|contact-info|advertiser-info|anunciante)[^"]*"[\s\S]{0,800}?<\/(?:div|section|aside)>/i)
-    if (ownerBlock) {
-      advertiserName = ownerBlock[0]
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 100)
-    }
-  }
-
-  // Estrategia C: JSON con "nombre" del anunciante (pisos.com inyecta JSON en <script>)
-  if (!advertiserName) {
-    const jsonName = html.match(/"(?:nombre|name|advertiserName)"\s*:\s*"([A-Za-záéíóúüñÁÉÍÓÚÜÑ][^"]{2,60})"/)
-    if (jsonName) advertiserName = jsonName[1].trim()
-  }
-
-  // ── Señales corporativas en el nombre → rechazar aunque tenga badge ─────────
-  if (advertiserName) {
-    // Sufijos societarios
-    if (/\bS\.?\s*L\.?\b|\bS\.?\s*A\.?\b|\bS\.?\s*L\.?\s*U\.?\b/i.test(advertiserName)) return false
-    // Palabras clave de agencia
-    if (/inmo|finques|finca|asesores|asesor[ií]a|gesti[oó]n|gestoria|gestor[ií]a|agencia|inmuebles|propiedades|promotora|constructora|inversiones|grupo\s+inmo/i.test(advertiserName)) return false
-    // Todo en MAYÚSCULAS de 4+ letras = patrón corporativo (TUKSA, TOT FINQUES, JLL...)
-    if (/[A-ZÁÉÍÓÚÜÑ]{4,}/.test(advertiserName) && !/[a-záéíóúüñ]{3,}/.test(advertiserName)) return false
-  }
-
-  // ── PASO 3: badge confirmada + nombre sin señales corporativas → PARTICULAR ──
-  return true
+  return /anunciante\s+particular/i.test(html)
 }
 
 

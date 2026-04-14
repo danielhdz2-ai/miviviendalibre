@@ -226,27 +226,12 @@ async function fetchNextData(
 // MURO DE CONTENCIÓN: si no se puede confirmar positivamente → rechazar
 function isParticularAdvertiser(advertiser: FotoAdvertiser | undefined): boolean {
   if (!advertiser) return false
-
   // commercialTypeId: 1 = particular, 2 = profesional/agencia
-  // Si el campo existe y es 1 → particular confirmado
+  // Confiamos en la señal del portal sin override por nombre del anunciante
   if (typeof advertiser.commercialTypeId === 'number') {
     return advertiser.commercialTypeId === 1
   }
-
-  // Señales corporativas en el nombre → rechazar
-  const name = (advertiser.name ?? advertiser.commercialName ?? '').trim()
-  if (!name) return false
-
-  // Nombre todo en mayúsculas (TUKSA, JLL, CBRE…) → agencia
-  if (/^[A-ZÁÉÍÓÚÜÑ\s·&-]{4,}$/.test(name) && !/[a-záéíóúüñ]/.test(name)) return false
-
-  // Sufijos societarios → agencia
-  if (/\bS\.?\s*L\.?\b|\bS\.?\s*A\.?\b|\bS\.?\s*L\.?\s*U\.?\b/i.test(name)) return false
-
-  // Palabras de agencia en el nombre → rechazar
-  if (/inmobiliaria|asesores|gestión|gestion|propiedades|consultores|inversiones|grupo|agencia/i.test(name)) return false
-
-  // Sin campo confirmatorio → duda → false (muro de contención)
+  // Sin campo confirmatorio → portal no confirma particular
   return false
 }
 

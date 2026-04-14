@@ -4,7 +4,7 @@ name: 🤖 Raspadores Autónomos
 # PORTALES ACTIVOS:
 #   Agencias  → Tecnocasa · Redpiso · Monapart · pisos.com · Gilmar
 #   Banca     → Solvia (Sabadell) · Aliseda (Santander/Blackstone)
-#   Particular→ pisos.com Particulares · Milanuncios Particulares
+#   Particular→ pisos.com Particulares · Milanuncios Particulares · Fotocasa Particulares · Habitaclia Particulares
 #
 # PORTALES PROHIBIDOS (agregadores / riesgo legal):
 #   ✗ mitula  ✗ kelify  ✗ trovit  ← NUNCA añadir
@@ -32,6 +32,7 @@ on:
           - pisoscom_particulares
           - milanuncios_particulares
           - fotocasa_particulares
+          - habitaclia_particulares
           - solvia
           - aliseda
       max:
@@ -464,6 +465,38 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
+  # ─── 🏠 Habitaclia Particulares ────────────────────────────────────────
+  habitaclia_particulares:
+    name: "🏠 [Habitaclia] ${{ matrix.city }} — Venta"
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'habitaclia_particulares' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        city: [madrid, barcelona, valencia, sevilla, zaragoza, malaga]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: 🤖 Ejecutar scraper
+        run: |
+          npx --yes tsx scripts/scrapers/habitaclia_particulares.ts \
+            venta \
+            ${{ matrix.city }} \
+            5
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # POST-PROCESO
 # ══════════════════════════════════════════════════════════════════════════════
@@ -480,6 +513,7 @@ jobs:
       - pisoscom_particulares
       - milanuncios_particulares
       - fotocasa_particulares
+      - habitaclia_particulares
       - solvia
       - aliseda
     if: always()
@@ -498,6 +532,7 @@ jobs:
           echo "| 🏠 pisos.com Particulares | Particular (solo venta) | ${{ needs.pisoscom_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🔥 Milanuncios Particulares | Particular (solo venta) | ${{ needs.milanuncios_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏠 Fotocasa Particulares | Particular (solo venta) | ${{ needs.fotocasa_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏠 Habitaclia Particulares | Particular (solo venta) | ${{ needs.habitaclia_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏦 Solvia (Banco Sabadell) | Banca | ${{ needs.solvia.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏦 Aliseda (Santander/Blackstone) | Banca | ${{ needs.aliseda.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -516,6 +551,7 @@ jobs:
       - pisoscom_particulares
       - milanuncios_particulares
       - fotocasa_particulares
+      - habitaclia_particulares
       - solvia
       - aliseda
     if: always() && needs.tecnocasa.result != 'cancelled'
