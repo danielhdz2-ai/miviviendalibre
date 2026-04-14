@@ -13,7 +13,7 @@ on:
         required: false
         default: 'all'
         type: choice
-        options: [all, tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda]
+        options: [all, tecnocasa, redpiso, monapart, pisoscom, gilmar, pisoscom_particulares, milanuncios_particulares, solvia, aliseda]
       max:
         description: 'Máx. anuncios por ciudad'
         required: false
@@ -297,9 +297,9 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
-  # ─── Division de Élite: pisos.com Particulares ───────────────────────────────
-  particulares:
-    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'particulares' }}
+  # ─── 🏠 pisos.com Particulares ──────────────────────────────────────────────
+  pisoscom_particulares:
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'pisoscom_particulares' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -319,7 +319,7 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: 🏠 Particulares pisos.com — ${{ matrix.city }} (${{ matrix.operation }})
+      - name: 🏠 pisos.com Particulares — ${{ matrix.city }} (${{ matrix.operation }})
         run: |
           npx --yes tsx scripts/scrapers/particulares_master.ts \
             ${{ matrix.operation }} \
@@ -328,9 +328,9 @@ jobs:
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
-  # ─── División de Élite: Milanuncios ─────────────────────────────────────────
-  milanuncios:
-    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'milanuncios' }}
+  # ─── 🔥 Milanuncios Particulares ────────────────────────────────────────────
+  milanuncios_particulares:
+    if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'milanuncios_particulares' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -376,29 +376,29 @@ jobs:
   # ─── Resumen final ──────────────────────────────────────────────────────────
   resumen:
     runs-on: ubuntu-latest
-    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda]
+    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, pisoscom_particulares, milanuncios_particulares, solvia, aliseda]
     if: always()
     steps:
       - name: Resumen de ejecución
         run: |
           echo "## 🤖 Scrapers completados" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Estado |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Tecnocasa | ${{ needs.tecnocasa.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Redpiso | ${{ needs.redpiso.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Monapart | ${{ needs.monapart.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| pisos.com | ${{ needs.pisoscom.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Gilmar | ${{ needs.gilmar.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏠 Particulares | ${{ needs.particulares.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔥 Milanuncios | ${{ needs.milanuncios.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏦 Solvia | ${{ needs.solvia.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏦 Aliseda | ${{ needs.aliseda.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Robot | Tipo | Estado |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏢 Tecnocasa | Agencia | ${{ needs.tecnocasa.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏢 Redpiso | Agencia | ${{ needs.redpiso.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏢 Monapart | Agencia | ${{ needs.monapart.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏢 pisos.com General | Agencia+Part. | ${{ needs.pisoscom.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏢 Gilmar | Agencia | ${{ needs.gilmar.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏠 pisos.com Particulares | Particular | ${{ needs.pisoscom_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔥 Milanuncios Particulares | Particular | ${{ needs.milanuncios_particulares.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏦 Solvia (Banco Sabadell) | Banca | ${{ needs.solvia.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏦 Aliseda (Santander/Blackstone) | Banca | ${{ needs.aliseda.result }} |" >> $GITHUB_STEP_SUMMARY
 
   # ─── 🧠 Normalización de títulos con IA ─────────────────────────────────────
   normalize_titles:
     runs-on: ubuntu-latest
-    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, particulares, milanuncios, solvia, aliseda]
+    needs: [tecnocasa, redpiso, monapart, pisoscom, gilmar, pisoscom_particulares, milanuncios_particulares, solvia, aliseda]
     if: always() && needs.tecnocasa.result != 'cancelled'
     steps:
       - uses: actions/checkout@v4
