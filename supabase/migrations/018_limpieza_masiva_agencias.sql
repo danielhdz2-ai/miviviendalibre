@@ -69,7 +69,9 @@ WHERE is_particular = true
     -- ══════════════════════════════════════════════════════════════════════════
     -- BLOQUE C — Marcas conocidas de agencias (aunque no tengan S.L.)
     -- ══════════════════════════════════════════════════════════════════════════
-    OR advertiser_name ILIKE '%infinity%'       -- Infinity Marbella
+    OR advertiser_name ILIKE '%infinity%'       -- Infinity Marbella, Infinity Real Estate…
+    OR advertiser_name ILIKE '%infinity marbella%'
+    OR advertiser_name ILIKE '%marbella%'       -- agencias de la Costa del Sol
     OR advertiser_name ILIKE '%tot finques%'
     OR advertiser_name ILIKE '%remax%'
     OR advertiser_name ILIKE '%keller williams%'
