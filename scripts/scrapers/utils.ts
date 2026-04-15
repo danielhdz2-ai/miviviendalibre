@@ -409,7 +409,9 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
 }
 
 async function insertImages(listingId: string, images: string[], headers: Record<string, string>) {
-  const rows = images.map((url, i) => ({
+  // Regla de calidad: mínimo 5, máximo 15 fotos
+  const capped = images.slice(0, 15)
+  const rows = capped.map((url, i) => ({
     listing_id: listingId,
     external_url: url,
     position: i,

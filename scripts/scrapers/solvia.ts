@@ -238,24 +238,60 @@ function parseDetailPage(html: string, sourceUrl: string): {
   // ── Imágenes ───────────────────────────────────────────────────────────────
   const images: string[] = []
   const seenImgs = new Set<string>()
-  // CDN: cdnsolvproep.solvia.es/uploaded/img_{UUID}.ORIGINAL.jpg
-  const imgRe = /https:\/\/cdnsolvproep\.solvia\.es\/uploaded\/([^"'\s\\]+)/g
-  let im: RegExpExecArray | null
-  while ((im = imgRe.exec(html))) {
-    const raw = im[0].split('?')[0]
-    // Normalizar a .ORIGINAL.jpg solo si no lo es ya (evita .ORIGINAL.jpg.jpg)
-    const normalized = /\.ORIGINAL\.jpg$/i.test(raw)
-      ? raw
-      : raw.replace(/\.[a-z]{3,4}$/i, '.ORIGINAL.jpg')
-    if (!seenImgs.has(normalized)) {
-      seenImgs.add(normalized)
-      images.push(normalized)
-    }
+
+  function addImg(raw: string) {
+    // Limpiar query string y anchors
+    const clean = raw.split('?')[0].split('#')[0].trim()
+    if (!clean.startsWith('https://')) return
+    // Solo CDN de Solvia
+    if (!clean.includes('cdnsolvproep.solvia.es')) return
+    // Descartar thumbnails con dimensiones (imagen_1234.720x503.ORIGINAL.jpg)
+    if (/\.\d+x\d+\./.test(clean)) return
+    // Descartar URLs con ruta de fecha antigua (rotas en CDN)
+    if (/\/uploaded\/20\d{2}\//.test(clean) || /\/NEWS_[A-F0-9-]+/i.test(clean)) return
+    // Normalizar a .ORIGINAL.jpg
+    const url = /\.ORIGINAL\.jpg$/i.test(clean)
+      ? clean
+      : clean.replace(/\.[a-z]{3,4}$/i, '.ORIGINAL.jpg')
+    if (!seenImgs.has(url)) { seenImgs.add(url); images.push(url) }
   }
-  // Fallback: Open Graph image
+
+  // 1. CDN directo en atributos src, data-src, data-lazy, href, content
+  const cdnRe = /https:\/\/cdnsolvproep\.solvia\.es\/uploaded\/[^\s"'<>\\]+/g
+  let im: RegExpExecArray | null
+  while ((im = cdnRe.exec(html))) addImg(im[0])
+
+  // 2. JSON-LD image arrays
+  const ldBlocksImg = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) ?? []
+  for (const block of ldBlocksImg) {
+    const inner = block.replace(/<\/?script[^>]*>/gi, '')
+    try {
+      const obj = JSON.parse(inner)
+      const candidates = [
+        obj.image, obj.photo,
+        obj['@graph']?.[0]?.image,
+        obj['@graph']?.[0]?.photo,
+      ].flat().filter(Boolean)
+      for (const c of candidates) {
+        if (typeof c === 'string') addImg(c)
+        else if (typeof c === 'object' && c?.url) addImg(c.url)
+        else if (typeof c === 'object' && c?.contentUrl) addImg(c.contentUrl)
+      }
+    } catch { /* ignorar */ }
+  }
+
+  // 3. JSON embebido de React/Next (ventana.__NEXT_DATA__, window.__INITIAL_STATE__, etc.)
+  const jsonDataRe = /(?:__NEXT_DATA__|initialProps|window\.__[A-Z_]+)\s*=\s*(\{[\s\S]{20,}?\})\s*;?\s*<\/script>/
+  const jdm = html.match(jsonDataRe)
+  if (jdm) {
+    const allCdnInJson = jdm[1].match(/https:\/\/cdnsolvproep\.solvia\.es\/uploaded\/[^\s"'\\]+/g) ?? []
+    allCdnInJson.forEach(addImg)
+  }
+
+  // 4. og:image como último recurso
   if (images.length === 0) {
     const ogImg = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
-    if (ogImg) images.push(ogImg[1])
+    if (ogImg) addImg(ogImg[1])
   }
 
   // ── Badges bancarios y especiales ─────────────────────────────────────────
