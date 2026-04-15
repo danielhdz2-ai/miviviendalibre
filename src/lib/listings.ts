@@ -52,7 +52,31 @@ export async function searchListings(params: SearchParams): Promise<{
     return { listings: [], total: 0 }
   }
 
-  return { listings: (data ?? []) as Listing[], total: count ?? 0 }
+  // Batch-load imágenes (máx 5 por listing) en una sola query
+  const rows = data ?? []
+  if (rows.length > 0) {
+    const ids = rows.map((l: { id: string }) => l.id)
+    const { data: imgs } = await supabase
+      .from('listing_images')
+      .select('listing_id, id, external_url, storage_path, position')
+      .in('listing_id', ids)
+      .lte('position', 4)
+      .order('listing_id')
+      .order('position', { ascending: true })
+
+    if (imgs?.length) {
+      const imgMap = new Map<string, typeof imgs>()
+      for (const img of imgs) {
+        if (!imgMap.has(img.listing_id)) imgMap.set(img.listing_id, [])
+        imgMap.get(img.listing_id)!.push(img)
+      }
+      for (const listing of rows) {
+        (listing as Record<string, unknown>).listing_images = imgMap.get(listing.id) ?? []
+      }
+    }
+  }
+
+  return { listings: rows as Listing[], total: count ?? 0 }
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
