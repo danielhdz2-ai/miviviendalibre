@@ -435,9 +435,9 @@ export async function scrapeParticulares(
         console.log(`    ⚠️ [DESCARTADO - sin precio] ${detailUrl.slice(30, 80)}`)
         continue
       }
-      if (detail.images.length === 0) {
+      if (detail.images.length < 5) {
         discarded++
-        console.log(`    ⚠️ [DESCARTADO - sin fotos] ${detailUrl.slice(30, 80)}`)
+        console.log(`    ⚠️ [DESCARTADO - solo ${detail.images.length} fotos (<5)] ${detailUrl.slice(30, 80)}`)
         continue
       }
       if (!detail.isParticularConfirmed) {

@@ -3,7 +3,7 @@
  *
  * Ejecuta solo scrapers de Fetch (rápidos, sin Playwright) con límites estrictos.
  * Reglas de oro:
- *   - Máx. 5 anuncios NUEVOS por tarea (con foto obligatoria)
+ *   - Máx. 5 anuncios NUEVOS por tarea (con mínimo 5 fotos reales obligatorio)
  *   - Sin duplicados: upsertListing deduplica por source_portal + source_external_id
  *   - Scrapers Playwright (redpiso, monapart) pausados
  *   - Tecnocasa: VETADO PERMANENTEMENTE (imágenes = planos/logos, precios erróneos)

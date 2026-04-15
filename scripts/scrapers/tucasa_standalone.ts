@@ -307,9 +307,9 @@ export async function runTucasa(
         listing.description = detail.description
       if (detail.phone) listing.phone = detail.phone
 
-      // Regla boutique: solo subir si tiene imágenes
-      if (!listing.images?.length) {
-        console.log(`  ⚠️ Sin imágenes, descartado: ${listing.title?.slice(0, 60)}`)
+      // Regla boutique: solo subir si tiene ≥5 imágenes reales
+      if (!listing.images?.length || listing.images.length < 5) {
+        console.log(`  ⚠️ Solo ${listing.images?.length ?? 0} fotos (<5), descartado: ${listing.title?.slice(0, 60)}`)
         totalSkipped++
         await sleep(DELAY_MS)
         continue

@@ -342,10 +342,10 @@ export async function scrapeSolvia(operation: 'venta' | 'alquiler', maxPages: nu
         external_link: it.url,
       }
 
-      // Boutique: solo anuncios con imágenes
-      if (!d.images.length) {
+      // Boutique: solo anuncios con ≥5 imágenes reales
+      if (d.images.length < 5) {
         skipped++
-        console.log(`    ⚠️ Sin imágenes, descartado: ${(d.title ?? '').slice(0, 55)}`)
+        console.log(`    ⚠️ Solo ${d.images.length} fotos (<5), descartado: ${(d.title ?? '').slice(0, 55)}`)
         continue
       }
 

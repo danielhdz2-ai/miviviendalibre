@@ -325,10 +325,10 @@ export async function scrapeMilanuncios(
         continue
       }
 
-      // Boutique: solo anuncios con imágenes
-      if (!detail.images.length) {
+      // Boutique: solo anuncios con ≥5 imágenes reales
+      if (detail.images.length < 5) {
         rejected++
-        console.log(`    ⚠️ Sin imágenes, descartado: ${item.title.slice(0, 50)}`)
+        console.log(`    ⚠️ Solo ${detail.images.length} fotos (<5), descartado: ${item.title.slice(0, 50)}`)
         await sleep(DELAY_MS)
         continue
       }

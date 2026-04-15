@@ -377,8 +377,8 @@ export async function runEnalquiler(
         continue
       }
 
-      if (detail.images.length === 0) {
-        console.log(`    ⏭ Sin imágenes, saltando`)
+      if (detail.images.length < 5) {
+        console.log(`    ⏭ Solo ${detail.images.length} fotos (<5), saltando`)
         totalSkipped++
         continue
       }
