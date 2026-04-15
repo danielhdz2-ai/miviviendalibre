@@ -23,6 +23,7 @@ export async function searchListings(params: SearchParams): Promise<{
     .from('listings')
     .select('*', { count: 'exact' })
     .eq('status', 'published')
+    .eq('has_images', true)
     .range(offset, offset + PAGE_SIZE - 1)
 
   if (params.operacion) query = query.eq('operation', params.operacion)
