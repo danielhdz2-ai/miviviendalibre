@@ -14,15 +14,20 @@
  *   maxPages: número de páginas (default: 5)
  */
 
+import { chromium } from 'playwright-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import { upsertListing, extractPhone, type ScrapedListing } from './utils'
+
+// Playwright + Stealth — Habitaclia usa Imperva que bloquea fetch() convencional
+chromium.use(StealthPlugin())
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 
-const DELAY_MS      = 1500
-const PAGE_DELAY_MS = 3000
+const DELAY_MS      = 2000
+const PAGE_DELAY_MS = 3500
 
 const CITY_MAP: Record<string, { province: string; city: string; slug: string }> = {
   madrid:    { province: 'Madrid',    city: 'Madrid',    slug: 'madrid' },
@@ -43,23 +48,36 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+// fetchHtml usa Playwright para evitar el bloqueo Imperva de Habitaclia
+let _browser: import('playwright').Browser | null = null
+
+async function getBrowser() {
+  if (!_browser) {
+    _browser = await chromium.launch({ headless: true })
+  }
+  return _browser
+}
+
 async function fetchHtml(url: string, referer = 'https://www.habitaclia.com/'): Promise<string | null> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': UA,
-        Accept: 'text/html,application/xhtml+xml,*/*;q=0.8',
+    const browser = await getBrowser()
+    const context = await browser.newContext({
+      userAgent: UA,
+      extraHTTPHeaders: {
         'Accept-Language': 'es-ES,es;q=0.9,ca;q=0.8',
-        'Cache-Control': 'no-cache',
         Referer: referer,
       },
-      signal: AbortSignal.timeout(15000),
     })
-    if (!res.ok) {
-      console.warn(`  ⚠️ HTTP ${res.status} para ${url}`)
+    const page = await context.newPage()
+    const res  = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+    if (!res || !res.ok()) {
+      console.warn(`  ⚠️ HTTP ${res?.status()} para ${url}`)
+      await context.close()
       return null
     }
-    return res.text()
+    const html = await page.content()
+    await context.close()
+    return html
   } catch (err) {
     console.warn(`  ⚠️ Fetch error: ${err}`)
     return null
@@ -69,14 +87,16 @@ async function fetchHtml(url: string, referer = 'https://www.habitaclia.com/'): 
 // ─── Construcción de URL de búsqueda ─────────────────────────────────────────
 
 /**
- * Habitaclia URLs:
- *   Venta pág 1:  /comprar-pisos-en-{city}/anunciante-particular.htm
- *   Venta pág 2+: /comprar-pisos-en-{city}/anunciante-particular.htm?i={n}
- *   Alquiler:     /alquiler-pisos-en-{city}/anunciante-particular.htm
+ * Habitaclia URLs (formato verificado abril 2026):
+ *   Venta pág 1:  /viviendas-particulares-{city}.htm
+ *   Venta pág 2+: /viviendas-particulares-{city}.htm?i={n}
+ *   Alquiler pág 1:  /alquiler-piso_particular-{city}.htm
+ *   Alquiler pág 2+: /alquiler-piso_particular-{city}.htm?i={n}
  */
 function buildSearchUrl(operation: 'venta' | 'alquiler', citySlug: string, page: number): string {
-  const verb  = operation === 'venta' ? 'comprar' : 'alquiler'
-  const base  = `https://www.habitaclia.com/${verb}-pisos-en-${citySlug}/anunciante-particular.htm`
+  const base = operation === 'venta'
+    ? `https://www.habitaclia.com/viviendas-particulares-${citySlug}.htm`
+    : `https://www.habitaclia.com/alquiler-piso_particular-${citySlug}.htm`
   return page === 1 ? base : `${base}?i=${page - 1}`
 }
 
@@ -121,10 +141,11 @@ function extractListingLinks(html: string): HabitacliaItem[] {
 
   if (items.length > 0) return items
 
-  // Estrategia 2: href en <a> con /comprar-piso- o /alquiler-piso-
-  const linkRe = /href="(\/(?:comprar|alquiler)-piso-[^"?#]+\.htm)"/gi
+  // Estrategia 2: href con patrón ID de Habitaclia (-i\d{8,}.htm)
+  // Captura URLs absolutas: https://www.habitaclia.com/comprar-piso-...-madrid-i500004521959.htm
+  const linkRe = /href="(https?:\/\/www\.habitaclia\.com\/(?:comprar|alquiler)-[^"?#\s]*-i\d{8,}\.htm)"/gi
   while ((m = linkRe.exec(html))) {
-    const url = `https://www.habitaclia.com${m[1]}`
+    const url = m[1]
     if (seen.has(url)) continue
     seen.add(url)
     items.push({ url, title: '', price: null })
@@ -388,7 +409,11 @@ async function main(): Promise<void> {
   const operation = (args[0] as 'venta' | 'alquiler') || 'venta'
   const city      = args[1] || 'madrid'
   const maxPages  = parseInt(args[2] || '5', 10)
-  await scrapeHabitacliaParticulares(operation, city, maxPages)
+  try {
+    await scrapeHabitacliaParticulares(operation, city, maxPages)
+  } finally {
+    if (_browser) await _browser.close()
+  }
 }
 
 main().catch(console.error)
