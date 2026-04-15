@@ -15,6 +15,8 @@ interface CurrentParams {
   ciudad: string
   operacion: string
   soloParticulares: boolean
+  soloBancarias?: boolean
+  soloAgencias?: boolean
   ordenar: string
   vista: string
   precioMin?: number
@@ -51,6 +53,8 @@ export default function SearchResults({
     if (currentParams.ciudad) p.set('ciudad', currentParams.ciudad)
     if (currentParams.operacion) p.set('operacion', currentParams.operacion)
     if (currentParams.soloParticulares) p.set('solo_particulares', 'true')
+    if (currentParams.soloBancarias) p.set('solo_bancarias', 'true')
+    if (currentParams.soloAgencias)  p.set('solo_agencias', 'true')
     if (currentParams.ordenar && currentParams.ordenar !== 'relevancia') p.set('ordenar', currentParams.ordenar)
     if (currentParams.vista && currentParams.vista !== 'lista') p.set('vista', currentParams.vista)
     if (currentParams.precioMin) p.set('precio_min', String(currentParams.precioMin))
@@ -92,6 +96,8 @@ export default function SearchResults({
                 if (currentParams.ciudad) p.set('ciudad', currentParams.ciudad)
                 if (currentParams.operacion) p.set('operacion', currentParams.operacion)
                 if (currentParams.soloParticulares) p.set('solo_particulares', 'true')
+                if (currentParams.soloBancarias) p.set('solo_bancarias', 'true')
+                if (currentParams.soloAgencias)  p.set('solo_agencias', 'true')
                 if (currentParams.precioMin) p.set('precio_min', String(currentParams.precioMin))
                 if (currentParams.precioMax) p.set('precio_max', String(currentParams.precioMax))
                 if (currentParams.habitaciones != null) p.set('hab', String(currentParams.habitaciones))

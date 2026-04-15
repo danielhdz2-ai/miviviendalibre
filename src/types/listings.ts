@@ -57,6 +57,7 @@ export interface SearchParams {
   operacion?: OperationType
   solo_particulares?: boolean
   solo_bancarias?: boolean
+  solo_agencias?: boolean
   habitaciones?: number
   habitaciones_min?: number
   banos_min?: number

@@ -48,6 +48,8 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
   const ciudad = params.ciudad ?? ''
   const operacion = (params.operacion as OperationType) || undefined
   const soloParticulares = params.solo_particulares === 'true'
+  const soloBancarias    = params.solo_bancarias === 'true'
+  const soloAgencias     = params.solo_agencias === 'true'
   const ordenar = (params.ordenar as SortOption) || 'relevancia'
   const vista = (params.vista as VistaOption) || 'grid'
   const pagina = Math.max(1, parseInt(params.pagina ?? '1', 10))
@@ -63,6 +65,8 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
     ciudad: ciudad || undefined,
     operacion,
     solo_particulares: soloParticulares,
+    solo_bancarias: soloBancarias,
+    solo_agencias: soloAgencias,
     ordenar,
     habitaciones,
     banos_min: banosMin,
@@ -98,6 +102,8 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
               ciudad: ciudad || undefined,
               operacion: operacion || 'rent',
               soloParticulares,
+              soloBancarias,
+              soloAgencias,
             }}
           />
         </div>
@@ -134,7 +140,17 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
                   )}
                   {soloParticulares && (
                     <span className="px-2 py-0.5 text-xs font-semibold bg-[#fef0c0] text-[#a87a20] rounded-full">
-                      Solo particulares
+                      👤 Solo particulares
+                    </span>
+                  )}
+                  {soloBancarias && (
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
+                      🏦 Fondos bancarios
+                    </span>
+                  )}
+                  {soloAgencias && (
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-full">
+                      🏢 Agencias
                     </span>
                   )}
                 </h1>
@@ -151,6 +167,8 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
               ciudad,
               operacion: operacion ?? '',
               soloParticulares,
+              soloBancarias,
+              soloAgencias,
               ordenar,
               vista,
               precioMin,
@@ -191,7 +209,17 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
               )}
               {soloParticulares && (
                 <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-[#fef0c0] text-[#a87a20] rounded-full align-middle">
-                  Solo particulares
+                  👤 Solo particulares
+                </span>
+              )}
+              {soloBancarias && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full align-middle">
+                  🏦 Fondos bancarios
+                </span>
+              )}
+              {soloAgencias && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 rounded-full align-middle">
+                  🏢 Agencias
                 </span>
               )}
             </h1>
@@ -208,6 +236,8 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
               ciudad,
               operacion: operacion ?? '',
               soloParticulares,
+              soloBancarias,
+              soloAgencias,
               ordenar,
               vista,
               precioMin,
