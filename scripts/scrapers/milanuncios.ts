@@ -335,7 +335,7 @@ export async function scrapeMilanuncios(
 
       const listing: ScrapedListing = {
         title: item.title || `Particular Milanuncios – ${geoInfo.city}`,
-        description: detail.description,
+        description: detail.description ?? undefined,
         price_eur: detail.price ?? undefined,
         operation: opLabel as 'sale' | 'rent',
         province: geoInfo.province,
