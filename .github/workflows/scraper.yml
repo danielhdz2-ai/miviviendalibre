@@ -1,0 +1,22 @@
+name: Scraper diario
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # 7:00 AM UTC todos los días
+  workflow_dispatch:        # también se puede lanzar a mano desde GitHub
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Llamar al endpoint /api/scraper
+        run: |
+          curl -s -f \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://inmonest.com/api/scraper \
+          | tee response.json
+
+      - name: Mostrar resultado
+        run: cat response.json
