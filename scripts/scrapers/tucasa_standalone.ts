@@ -141,13 +141,24 @@ function extractListings(
       text.match(/\b(\d{2,4})\s+m\s+2\b/i)
     const area_m2 = areaM ? parseInt(areaM[1], 10) : undefined
 
-    // Dormitorios
-    const bedsM = text.match(/(\d+) habitaci[oó]n/i)
+    // Dormitorios — captura singular Y plural: "1 habitación" / "3 habitaciones"
+    const bedsM =
+      text.match(/(\d+)\s*habitaci(?:ones|[oó]n)/i) ??
+      text.match(/(\d+)\s*dormitori(?:os|o)/i) ??
+      text.match(/habitaci(?:ones|[oó]n)\s*[:\s]+\s*(\d+)/i)
     const bedrooms = bedsM ? parseInt(bedsM[1], 10) : undefined
 
     // Baños
-    const bathsM = text.match(/(\d+) ba[ñn]o/i)
+    const bathsM =
+      text.match(/(\d+)\s*ba[ñn]os?/i) ??
+      text.match(/ba[ñn]os?\s*[:\s]+\s*(\d+)/i)
     const bathrooms = bathsM ? parseInt(bathsM[1], 10) : undefined
+
+    // Tipo de inmueble: "Piso", "Chalet", "Apartamento", "Ático", etc.
+    const propertyTypeM = text.match(
+      /(?:^|\bEs un\s+)(Piso|Apartamento|Chalet|Ático|Atico|D[úu]plex|Casa|Estudio|Local|Garaje)\b/i
+    )
+    const propertyType = propertyTypeM ? propertyTypeM[1] : undefined
 
     // Descripción: texto desde "Venta de" / "Alquiler de" hasta UI element
     const descM = text.match(
@@ -184,6 +195,7 @@ function extractListings(
       images: cardImages.length > 0 ? cardImages : undefined,
       external_link: sourceUrl,
       phone: undefined,
+      features: propertyType ? { tipo_casa: propertyType } : undefined,
       _needsDetail: true,
     } as ScrapedListing & { _needsDetail?: boolean })
   }

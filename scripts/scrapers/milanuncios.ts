@@ -353,6 +353,7 @@ export async function scrapeMilanuncios(
         is_particular: true,
         external_link: item.url,
         images: detail.images,
+        features: {},
       }
 
       const ok = await upsertListing(listing)

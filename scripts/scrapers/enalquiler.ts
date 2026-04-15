@@ -405,6 +405,7 @@ export async function runEnalquiler(
         images: detail.images,
         external_link: stub.url,
         phone: detail.phone ?? undefined,
+        features: {},
       }
 
       const ok = await upsertListing(listing)

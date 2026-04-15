@@ -200,6 +200,13 @@ async function scrapeGilmar(filterOp: 'venta' | 'alquiler' | 'all', maxItems: nu
 
       const detail = parseGilmarDetail(html)
 
+      // Regla de calidad: mínimo 5 fotos
+      if (detail.images.length < 5) {
+        console.log(`  ⏭️ Solo ${detail.images.length} fotos (<5), omitido`)
+        skipped++
+        continue
+      }
+
       const geo = inferCityFromUrl(item.link)
 
       // Título: limpiar HTML entities
@@ -229,6 +236,7 @@ async function scrapeGilmar(filterOp: 'venta' | 'alquiler' | 'all', maxItems: nu
         is_particular: false,
         images: detail.images,
         external_link: item.link,
+        features: detail.district ? { zona: detail.district } : {},
       }
 
       const ok = await upsertListing(listing)
