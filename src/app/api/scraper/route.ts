@@ -1,107 +1,98 @@
+/**
+ * Vercel Cron endpoint — Scraper boutique diario
+ *
+ * Cron: cada día a las 7:00 AM (configurado en vercel.json)
+ * Seguridad: Vercel envía Authorization: Bearer <CRON_SECRET> automáticamente
+ * Timeout: maxDuration = 300s (requiere Vercel Pro)
+ *
+ * Variables de entorno necesarias en Vercel:
+ *   CRON_SECRET          — secreto para autenticar el cron (Vercel lo inyecta solo)
+ *   SUPABASE_SERVICE_KEY — service role key de Supabase
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
-import { scrapeWallapop } from '@/lib/scraper/wallapop'
-import { scrapeMilanuncios } from '@/lib/scraper/milanuncios'
-import { detectParticular } from '@/lib/detect-particular'
 
-// Supabase Admin client (service role) para insertar sin RLS
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+// Vercel Pro: hasta 300 segundos para cron jobs
+export const maxDuration = 300
 
-function getAdminClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+const MAX_ITEMS = 5  // anuncios nuevos máx. por tarea
+const MAX_PAGES = 2  // páginas a inspeccionar
 
-// GET: llamado por Vercel Cron o manualmente con ?secret=CRON_SECRET
-export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret')
-  // Vercel Cron envía este header automáticamente
-  const isCronCall = req.headers.get('x-vercel-cron') === '1'
-
-  const validSecret = process.env.SCRAPER_SECRET?.trim()
-  const isAuthorized = isCronCall || (validSecret && secret === validSecret)
-
-  if (!isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const supabase = getAdminClient()
-  const stats = { wallapop: 0, milanuncios: 0, inserted: 0, skipped: 0 }
-
-  try {
-    // 1. Scrape ambas fuentes en paralelo
-    const [wallapopItems, milanunciosItems] = await Promise.allSettled([
-      scrapeWallapop(),
-      scrapeMilanuncios(),
-    ])
-
-    const allItems = [
-      ...(wallapopItems.status === 'fulfilled' ? wallapopItems.value : []),
-      ...(milanunciosItems.status === 'fulfilled' ? milanunciosItems.value : []),
-    ]
-
-    stats.wallapop = wallapopItems.status === 'fulfilled' ? wallapopItems.value.length : 0
-    stats.milanuncios = milanunciosItems.status === 'fulfilled' ? milanunciosItems.value.length : 0
-
-    // 2. Insertar en Supabase, saltando duplicados por source_external_id
-    for (const item of allItems) {
-      const detection = detectParticular(item.title, item.description)
-
-      const source = item.id.startsWith('wallapop') ? 'wallapop' : 'milanuncios'
-
-      const { error } = await supabase.from('listings').insert({
-        origin: 'external',
-        operation: item.operation,
-        title: item.title.slice(0, 200),
-        description: item.description.slice(0, 3000),
-        price_eur: item.price,
-        city: item.city,
-        province: item.city,
-        source_portal: source,
-        source_external_id: item.id,
-        source_url: item.url,
-        is_particular: detection.is_particular,
-        particular_confidence: detection.confidence,
-        ranking_score: Math.round(detection.confidence * 80),
-        status: 'published',
-        published_at: new Date().toISOString(),
-      })
-
-      // Insertar imagen si existe
-      if (!error && item.image_url) {
-        // Obtener el id del listing recién insertado
-        const { data: inserted } = await supabase
-          .from('listings')
-          .select('id')
-          .eq('source_external_id', item.id)
-          .single()
-
-        if (inserted?.id) {
-          await supabase.from('listing_images').insert({
-            listing_id: inserted.id,
-            external_url: item.image_url,
-            position: 0,
-          })
-        }
-        stats.inserted++
-      } else if (error?.code === '23505') {
-        // Clave duplicada — ya existía
-        stats.skipped++
-      } else if (!error) {
-        stats.inserted++
-      }
+export async function GET(request: NextRequest) {
+  // ── Autenticación ─────────────────────────────────────────────────────────
+  // Vercel Cron inyecta automáticamente: Authorization: Bearer <CRON_SECRET>
+  // También se acepta la misma cabecera para pruebas manuales
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    return NextResponse.json({
-      ok: true,
-      stats,
-      timestamp: new Date().toISOString(),
-    })
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Error desconocido', stats },
-      { status: 500 }
-    )
   }
+
+  if (!process.env.SUPABASE_SERVICE_KEY) {
+    return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY no configurado en Vercel' }, { status: 500 })
+  }
+
+  const startedAt = Date.now()
+  const results: Record<string, { inserted: number; skipped: number } | { error: string }> = {}
+
+  async function run(label: string, fn: () => Promise<{ inserted: number; skipped: number }>) {
+    try {
+      console.log(`[cron] ▶ ${label}`)
+      const r = await fn()
+      results[label] = r
+      console.log(`[cron] ✅ ${label}: +${r.inserted}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      results[label] = { error: msg }
+      console.error(`[cron] ❌ ${label}:`, msg)
+    }
+  }
+
+  // Importaciones dinámicas — evitan ejecutar código de módulo al arrancar (guards process.argv)
+  const { scrapeParticulares } = await import('../../../../scripts/scrapers/pisoscom_particulares')
+  const { scrapeMilanuncios }  = await import('../../../../scripts/scrapers/milanuncios')
+  const { scrapeSolvia }       = await import('../../../../scripts/scrapers/solvia')
+  const { runTucasa }          = await import('../../../../scripts/scrapers/tucasa_standalone')
+  const { runEnalquiler }      = await import('../../../../scripts/scrapers/enalquiler')
+
+  // ── pisos.com particulares — alquiler (prioridad máxima) ──────────────────
+  await run('pisoscom alquiler madrid',    () => scrapeParticulares('alquiler', 'madrid',    MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+  await run('pisoscom alquiler barcelona', () => scrapeParticulares('alquiler', 'barcelona', MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+
+  // ── pisos.com particulares — venta ────────────────────────────────────────
+  await run('pisoscom venta madrid',       () => scrapeParticulares('venta', 'madrid',    MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+  await run('pisoscom venta barcelona',    () => scrapeParticulares('venta', 'barcelona', MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+
+  // ── tucasa ────────────────────────────────────────────────────────────────
+  await run('tucasa venta madrid',         () => runTucasa('venta',    'madrid',   MAX_PAGES, MAX_ITEMS))
+  await run('tucasa alquiler madrid',      () => runTucasa('alquiler', 'madrid',   MAX_PAGES, MAX_ITEMS))
+  await run('tucasa venta valencia',       () => runTucasa('venta',    'valencia', MAX_PAGES, MAX_ITEMS))
+
+  // ── enalquiler (100% particulares, solo alquiler) ─────────────────────────
+  await run('enalquiler madrid',           () => runEnalquiler('madrid',    MAX_PAGES, MAX_ITEMS))
+  await run('enalquiler barcelona',        () => runEnalquiler('barcelona', MAX_PAGES, MAX_ITEMS))
+
+  // ── milanuncios particulares ──────────────────────────────────────────────
+  await run('milanuncios venta madrid',    () => scrapeMilanuncios('venta',    'madrid', MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+  await run('milanuncios alquiler madrid', () => scrapeMilanuncios('alquiler', 'madrid', MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+
+  // ── solvia (bancarios Sabadell) ───────────────────────────────────────────
+  await run('solvia venta',                () => scrapeSolvia('venta',    MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+  await run('solvia alquiler',             () => scrapeSolvia('alquiler', MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
+
+  const elapsed = Math.round((Date.now() - startedAt) / 1000)
+  const totalInserted = Object.values(results).reduce(
+    (sum, r) => sum + ('inserted' in r ? r.inserted : 0), 0
+  )
+
+  return NextResponse.json({
+    ok: true,
+    elapsed_s: elapsed,
+    total_inserted: totalInserted,
+    tasks: Object.keys(results).length,
+    results,
+  })
 }
+

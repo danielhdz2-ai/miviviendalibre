@@ -273,7 +273,7 @@ function parseDetailPage(html: string, sourceUrl: string): {
 }
 
 // ─── Scraper principal ───────────────────────────────────────────────────────
-async function scrapeSolvia(operation: 'venta' | 'alquiler', maxPages: number, maxItems: number = 9999) {
+export async function scrapeSolvia(operation: 'venta' | 'alquiler', maxPages: number, maxItems: number = 9999) {
   const opEs   = operation === 'venta' ? 'comprar' : 'alquilar'
   const opLabel: 'sale' | 'rent' = operation === 'venta' ? 'sale' : 'rent'
 
@@ -368,12 +368,15 @@ async function scrapeSolvia(operation: 'venta' | 'alquiler', maxPages: number, m
   }
 
   console.log(`\n✅ Solvia — TOTAL: ${imported} importados, ${skipped} saltados`)
+  return { inserted: imported, skipped }
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
-const [op = 'venta', maxPagesStr = '5', maxItemsStr = '9999'] = process.argv.slice(2)
-if (op !== 'venta' && op !== 'alquiler') {
-  console.error('❌ Operación inválida. Usa: venta | alquiler')
-  process.exit(1)
+if (process.argv[1]?.includes('solvia')) {
+  const [op = 'venta', maxPagesStr = '5', maxItemsStr = '9999'] = process.argv.slice(2)
+  if (op !== 'venta' && op !== 'alquiler') {
+    console.error('❌ Operación inválida. Usa: venta | alquiler')
+    process.exit(1)
+  }
+  scrapeSolvia(op as 'venta' | 'alquiler', parseInt(maxPagesStr, 10), parseInt(maxItemsStr, 10))
 }
-scrapeSolvia(op, parseInt(maxPagesStr, 10), parseInt(maxItemsStr, 10))

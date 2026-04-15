@@ -320,16 +320,12 @@ function parseDetail(html: string, fallbackCity: string, listingId: string): Det
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────────────────────────────────
-async function main() {
-  const args = process.argv.slice(2)
-  const cityKey = (args[0] ?? 'madrid').toLowerCase()
-  const maxPages = parseInt(args[1] ?? '5', 10)
-  const maxItems = parseInt(args[2] ?? '9999', 10)
-
-  if (!CITY_MAP[cityKey]) {
-    console.error(`❌ Ciudad no soportada: "${cityKey}"\n   Disponibles: ${Object.keys(CITY_MAP).join(', ')}`)
-    process.exit(1)
-  }
+export async function runEnalquiler(
+  cityKey: string,
+  maxPages: number,
+  maxItems: number = 9999
+): Promise<{ inserted: number; skipped: number }> {
+  if (!CITY_MAP[cityKey]) throw new Error(`Ciudad no soportada: "${cityKey}"`)
 
   const cityData = CITY_MAP[cityKey]
   console.log(`\n🏠 enalquiler.com — Scraper Particulares`)
@@ -432,9 +428,20 @@ async function main() {
   console.log(`\n✨ enalquiler.com [${cityData.city}] — Completado`)
   console.log(`   ✅ Insertados/actualizados: ${totalUpserted}`)
   console.log(`   ⏭ Saltados: ${totalSkipped}\n`)
+  return { inserted: totalUpserted, skipped: totalSkipped }
 }
 
-main().catch((err) => {
-  console.error('❌ Error fatal:', err)
-  process.exit(1)
-})
+async function main() {
+  const args = process.argv.slice(2)
+  const cityKey = (args[0] ?? 'madrid').toLowerCase()
+  const maxPages = parseInt(args[1] ?? '5', 10)
+  const maxItems = parseInt(args[2] ?? '9999', 10)
+  await runEnalquiler(cityKey, maxPages, maxItems)
+}
+
+if (process.argv[1]?.includes('enalquiler')) {
+  main().catch((err) => {
+    console.error('❌ Error fatal:', err)
+    process.exit(1)
+  })
+}

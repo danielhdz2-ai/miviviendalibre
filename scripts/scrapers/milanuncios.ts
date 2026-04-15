@@ -257,12 +257,12 @@ function extractDetailData(html: string, url: string): {
   return { price, area, bedrooms, bathrooms, description, images, postalCode, district, lat, lng, isParticular }
 }
 
-async function scrapeMilanuncios(
+export async function scrapeMilanuncios(
   operation: 'venta' | 'alquiler',
   citySlug: string,
   maxPages: number,
   maxItems: number = 9999
-): Promise<void> {
+): Promise<{ inserted: number; skipped: number }> {
   const geoInfo = CITY_MAP[citySlug]
   if (!geoInfo) {
     console.error(`Ciudad no soportada: ${citySlug}. Disponibles: ${Object.keys(CITY_MAP).join(', ')}`)
@@ -376,6 +376,7 @@ async function scrapeMilanuncios(
   console.log(`   ✅ ${imported} importados`)
   console.log(`   ⛔ ${rejected} rechazados (no verificados como particular)`)
   console.log(`   ⚠️ ${skipped} errores`)
+  return { inserted: imported, skipped: rejected + skipped }
 }
 
 async function main() {
@@ -387,4 +388,6 @@ async function main() {
   await scrapeMilanuncios(operation, city, maxPages, maxItems)
 }
 
-main().catch(console.error)
+if (process.argv[1]?.includes('milanuncios')) {
+  main().catch(console.error)
+}

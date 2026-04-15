@@ -370,12 +370,12 @@ function extractExternalId(url: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 // Scraper principal
 // ─────────────────────────────────────────────────────────────────────────────
-async function scrapeParticulares(
+export async function scrapeParticulares(
   operation: 'venta' | 'alquiler',
   citySlug: string,
   maxPages: number,
   maxItems: number = 9999
-): Promise<void> {
+): Promise<{ inserted: number; skipped: number }> {
   const geoInfo = CITY_MAP[citySlug]
   if (!geoInfo) {
     console.error(`❌ Ciudad no soportada: ${citySlug}`)
@@ -530,6 +530,7 @@ async function scrapeParticulares(
     `📊 pisos.com particulares ${operation}/${citySlug}: ` +
     `${imported} importados | ${discarded} descartados (sin precio/fotos/agencia) | ${skipped} errores`
   )
+  return { inserted: imported, skipped: discarded + skipped }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -550,4 +551,6 @@ async function main() {
   await scrapeParticulares(operation, city, maxPages, maxItems)
 }
 
-main().catch(console.error)
+if (process.argv[1]?.includes('pisoscom_particulares')) {
+  main().catch(console.error)
+}

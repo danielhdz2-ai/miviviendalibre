@@ -264,19 +264,14 @@ async function scrapePage(
   return extractListings(html, city, province, operation)
 }
 
-async function main() {
-  const opArg = (process.argv[2] ?? 'venta').toLowerCase()
-  const cityArg = (process.argv[3] ?? 'madrid').toLowerCase()
-  const maxPages = parseInt(process.argv[4] ?? '5', 10)
-  const maxItems = parseInt(process.argv[5] ?? '9999', 10)
-
+export async function runTucasa(
+  opArg: string,
+  cityArg: string,
+  maxPages: number,
+  maxItems: number = 9999
+): Promise<{ inserted: number; skipped: number }> {
   const cityInfo = CITY_MAP[cityArg]
-  if (!cityInfo) {
-    console.error(
-      `❌ Ciudad no soportada: ${cityArg}. Opciones: ${Object.keys(CITY_MAP).join(', ')}`
-    )
-    process.exit(1)
-  }
+  if (!cityInfo) throw new Error(`Ciudad no soportada: ${cityArg}`)
 
   const operation: 'sale' | 'rent' = opArg === 'alquiler' ? 'rent' : 'sale'
   const baseSegment = opArg === 'alquiler' ? 'alquiler-residencial' : 'compra-venta'
@@ -348,6 +343,17 @@ async function main() {
   console.log(
     `\n✨ Completado: ${totalInserted} insertados, ${totalSkipped} ya existían\n`
   )
+  return { inserted: totalInserted, skipped: totalSkipped }
 }
 
-main().catch(console.error)
+async function main() {
+  const opArg = (process.argv[2] ?? 'venta').toLowerCase()
+  const cityArg = (process.argv[3] ?? 'madrid').toLowerCase()
+  const maxPages = parseInt(process.argv[4] ?? '5', 10)
+  const maxItems = parseInt(process.argv[5] ?? '9999', 10)
+  await runTucasa(opArg, cityArg, maxPages, maxItems)
+}
+
+if (process.argv[1]?.includes('tucasa_standalone')) {
+  main().catch(console.error)
+}
