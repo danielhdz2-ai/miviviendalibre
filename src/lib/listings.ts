@@ -5,7 +5,7 @@ import type { Listing, SearchParams } from '@/types/listings'
 const PAGE_SIZE = 24
 
 const LIST_SELECT =
-  'id, origin, operation, title, price_eur, province, city, district, postal_code, lat, lng, bedrooms, bathrooms, area_m2, source_portal, is_particular, particular_confidence, ranking_score, turbo_until, status, views_count, published_at, created_at, is_bank, bank_entity, features, advertiser_name, source_external_id, listing_images(id, storage_path, external_url, position)'
+  'id, origin, operation, title, price_eur, province, city, district, postal_code, lat, lng, bedrooms, bathrooms, area_m2, source_portal, is_particular, particular_confidence, ranking_score, turbo_until, status, views_count, published_at, created_at, is_bank, bank_entity, features, advertiser_name, source_external_id'
 
 const PRIVATE_FIELDS = ['phone', 'external_link', 'source_url'] as const
 
@@ -115,12 +115,7 @@ async function _searchListings(params: SearchParams): Promise<{
 
   console.log('[searchListings] OK — total:', count, '| params:', JSON.stringify(params))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const listings = ((data ?? []) as any[]).map((l) => stripPrivateFields({
-    ...l,
-    listing_images: (l.listing_images ?? []).sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
-    ),
-  }))
+  const listings = ((data ?? []) as any[]).map((l) => stripPrivateFields({ ...l, listing_images: [] }))
 
   return { listings, total: count ?? 0 }
 }
