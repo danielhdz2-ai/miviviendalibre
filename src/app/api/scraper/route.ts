@@ -12,9 +12,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
-// Vercel Pro: hasta 300 segundos para cron jobs
-export const maxDuration = 300
-
 const MAX_ITEMS = 5  // anuncios nuevos máx. por tarea
 const MAX_PAGES = 2  // páginas a inspeccionar
 
