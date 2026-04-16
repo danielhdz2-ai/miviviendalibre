@@ -124,7 +124,6 @@ export async function GET() {
     headers: {
       'Content-Type': 'text/xml; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'X-Robots-Tag': 'noindex',
     },
   })
 }
