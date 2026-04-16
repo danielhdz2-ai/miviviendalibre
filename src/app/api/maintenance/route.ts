@@ -230,24 +230,6 @@ export async function GET(request: NextRequest) {
   })
 }
 
- *
- * Se ejecuta 4 veces al día (configurado en vercel.json).
- * Realiza 3 limpiezas en orden seguro:
- *
- *   1. Anuncios de DEMANDA  — títulos con "Compro", "Busco", "Pagamos al contado", etc.
- *      (aplica a todos los portales, no solo Milanuncios)
- *
- *   2. Imágenes rotas  — verifica via img-proxy un sample de cada anuncio;
- *      si ninguna imagen responde con 200 → anuncio eliminado
- *      (solo se comprueban anuncios de portales con hotlinking conocido)
- *
- *   3. Anuncios con < 5 fotos — solo para anuncios de AGENCIAS (is_particular=false);
- *      los particulares son inmortales (pueden tener pocas fotos y seguir siendo leads válidos)
- *
- * Seguridad: requiere Authorization: Bearer <CRON_SECRET>
- * Vercel lo inyecta automáticamente en los cron jobs configurados en vercel.json.
- */
-
 import { NextRequest, NextResponse } from 'next/server'
 
 const SUPABASE_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL!
