@@ -98,7 +98,12 @@ export async function GET() {
     [...staticEntries, ...ciudadEntries, ...listingEntries].join('\n') +
     '\n</urlset>'
 
-  return new Response(xml, {
+  // Red de seguridad: escapar cualquier & que NO esté ya seguido de una
+  // entidad XML válida (amp; lt; gt; quot; apos;) ni de un # (referencias numéricas).
+  // Esto corrige el error "EntityRef: expecting ';'" sin duplicar escapes ya correctos.
+  const safeXml = xml.replace(/&(?!(amp|lt|gt|quot|apos|#);|#\d+;)/g, '&amp;')
+
+  return new Response(safeXml, {
     headers: {
       'Content-Type': 'text/xml; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
