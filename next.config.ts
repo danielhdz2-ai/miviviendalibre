@@ -2,17 +2,6 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      // Sirve el sitemap desde el route handler /api/sitemap para
-      // evitar el bug de Next.js que no escapa & en metadata routes
-      // y para bypassear cualquier caché de build anterior
-      {
-        source: '/sitemap.xml',
-        destination: '/api/sitemap',
-      },
-    ]
-  },
   turbopack: {
     root: path.resolve(__dirname),
   },
