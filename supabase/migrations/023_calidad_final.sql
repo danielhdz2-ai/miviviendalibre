@@ -31,24 +31,28 @@ WHERE source_portal ILIKE '%tecnocasa%';
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PASO 2 — bedrooms IS NULL
---   Se aplica a TODOS los anuncios, incluyendo particulares.
---   Un anuncio sin habitaciones no es útil para ningún usuario.
+--   Solo se aplica a anuncios de AGENCIAS.
+--   Los particulares (is_particular = true) son INMORTALES — no se borran nunca
+--   por falta de datos, ya que a veces no detallan habitaciones en el anuncio.
 -- ─────────────────────────────────────────────────────────────────────────────
 DELETE FROM listings
-WHERE bedrooms IS NULL;
+WHERE bedrooms IS NULL
+  AND (is_particular IS NULL OR is_particular = false);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- PASO 3 — Menos de 5 fotos
---   Cuenta las filas reales en listing_images.
---   Un anuncio con 0–4 fotos da mala imagen y no convierte.
+--   Solo se aplica a anuncios de AGENCIAS.
+--   Los particulares (is_particular = true) son INMORTALES — en Milanuncios,
+--   Wallapop etc. es normal tener 1–3 fotos y el lead sigue siendo valioso.
 -- ─────────────────────────────────────────────────────────────────────────────
 DELETE FROM listings
 WHERE (
   SELECT COUNT(*)
   FROM listing_images li
   WHERE li.listing_id = listings.id
-) < 5;
+) < 5
+  AND (is_particular IS NULL OR is_particular = false);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
