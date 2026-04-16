@@ -185,32 +185,3 @@ export async function GET(request: NextRequest) {
     },
   })
 }
-  }
-
-  if (!SERVICE_KEY) {
-    return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY no configurado' }, { status: 500 })
-  }
-
-  const origin    = request.nextUrl.origin
-  const startedAt = Date.now()
-
-  const [demandR, brokenR, photosR] = await Promise.allSettled([
-    cleanDemandListings(),
-    cleanBrokenImages(origin),
-    cleanFewPhotosAgencies(),
-  ])
-
-  const demand = demandR.status === 'fulfilled' ? demandR.value : { deleted: 0 }
-  const broken = brokenR.status === 'fulfilled' ? brokenR.value : { deleted: 0, checked: 0 }
-  const photos = photosR.status === 'fulfilled' ? photosR.value : { deleted: 0 }
-
-  return NextResponse.json({
-    ok:      true,
-    elapsed: Date.now() - startedAt,
-    tasks: {
-      demand_listings: { ...demand, error: errStr(demandR) },
-      broken_images:   { ...broken, error: errStr(brokenR) },
-      few_photos:      { ...photos, error: errStr(photosR) },
-    },
-  })
-}
