@@ -177,21 +177,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer className="mt-auto border-t border-[#f4c94a]/20 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e3a5f] text-white font-black text-sm">IN</span>
-            <span className="font-bold text-gray-700">Inmonest</span>
-            <span>© 2026 Inmonest. Todos los derechos reservados.</span>
-          </div>
-          <div className="flex gap-5">
-            <Link href="/aviso-legal" className="hover:text-[#c9962a] transition-colors">Aviso legal</Link>
-            <Link href="/privacidad" className="hover:text-[#c9962a] transition-colors">Privacidad</Link>
-            <Link href="/contacto" className="hover:text-[#c9962a] transition-colors">Contacto</Link>
-          </div>
-        </div>
-      </footer>
+
     </div>
   )
 }
