@@ -126,7 +126,7 @@ export default function SolicitarModal({ service, onClose }: Props) {
                   className={input}
                 />
               </div>
-              <div>
+
               {status === 'error' && (
                 <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{errMsg}</p>
               )}
