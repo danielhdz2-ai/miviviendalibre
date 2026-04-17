@@ -11,10 +11,10 @@ const CIUDADES = [
   'malaga', 'murcia', 'bilbao', 'alicante', 'granada',
 ]
 
-/** Escapa los 5 caracteres reservados de XML */
+/** Escapa los caracteres reservados de XML excepto &
+ *  El & se trata en un único pase final sobre todo el XML */
 function xe(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
@@ -98,10 +98,9 @@ export async function GET() {
     [...staticEntries, ...ciudadEntries, ...listingEntries].join('\n') +
     '\n</urlset>'
 
-  // Red de seguridad: escapar cualquier & que NO esté ya seguido de una
-  // entidad XML válida (amp; lt; gt; quot; apos;) ni de un # (referencias numéricas).
-  // Esto corrige el error "EntityRef: expecting ';'" sin duplicar escapes ya correctos.
-  const safeXml = xml.replace(/&(?!(amp|lt|gt|quot|apos|#);|#\d+;)/g, '&amp;')
+  // Único pase final: convierte TODOS los & en &amp;
+  // Al llegar aquí no hay ningún & ya escapado porque xe() no toca el &
+  const safeXml = xml.split('&').join('&amp;')
 
   return new Response(safeXml, {
     headers: {
