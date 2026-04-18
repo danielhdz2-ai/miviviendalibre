@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const successPath = service_key === 'reserva-compra'
     ? '/gestoria/carga-documentos'
-    : '/gestoria/gracias'
+    : '/mis-documentos'
 
   // Llamada directa a la API REST de Stripe con fetch nativo (sin SDK)
   const params = new URLSearchParams()
