@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
+export const dynamic = 'force-dynamic'
+
 const BASE_URL = 'https://inmonest.com'
 
 // Todos los servicios de gestoría con pago directo en Stripe
@@ -17,8 +19,18 @@ const STRIPE_SERVICES: Record<string, { name: string; price_eur: number }> = {
   'devolucion-fianzas':   { name: 'Solicitud de Devolución de Fianzas',   price_eur: 40  },
 }
 
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-03-25.dahlia' })
+// Instancia singleton — configurada para entornos serverless (0 reintentos,
+// timeout explícito para no agotar los 30s del plan de Vercel)
+let _stripe: Stripe | null = null
+function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2026-03-25.dahlia',
+      maxNetworkRetries: 0,  // falla rápido — sin reintentos que agoten el tiempo
+      timeout: 8000,         // 8 segundos máximo por intento
+    })
+  }
+  return _stripe
 }
 
 export async function POST(req: NextRequest) {
@@ -71,7 +83,10 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: 'eur',
             unit_amount: service.price_eur * 100,
-            product_data: { name: service.name },
+            product_data: {
+              name: service.name,
+              description: 'Inmonest — Servicio de gestoría inmobiliaria',
+            },
           },
         },
       ],
@@ -82,7 +97,7 @@ export async function POST(req: NextRequest) {
         client_phone: client_phone?.trim().slice(0, 30) ?? '',
       },
       success_url: `${BASE_URL}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${BASE_URL}/gestoria`,
+      cancel_url:  `${BASE_URL}/gestoria`,
       locale: 'es',
       payment_method_types: ['card'],
       billing_address_collection: 'auto',
@@ -90,7 +105,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error al crear la sesión de pago'
+    // Log completo en servidor para diagnóstico
+    const stripeErr = err as Stripe.errors.StripeError
+    console.error('[gestoria/checkout] Stripe error:', {
+      type:    stripeErr.type,
+      code:    stripeErr.code,
+      message: stripeErr.message,
+      raw:     stripeErr.raw,
+    })
+    const msg = stripeErr.message ?? 'Error al crear la sesión de pago'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
