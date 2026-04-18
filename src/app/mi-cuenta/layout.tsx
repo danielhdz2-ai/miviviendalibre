@@ -30,7 +30,14 @@ export default async function MiCuentaLayout({
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
 
-  // Contador mensajes no leídos (leads recibidos)
+  // Contador alertas activas
+  const { count: alertCount } = await supabase
+    .from('search_alerts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('active', true)
+
+  // Contador mensajes no leídos (usando nuevo sistema conversations)
   const { data: anuncios } = await supabase
     .from('listings')
     .select('id')
@@ -44,6 +51,18 @@ export default async function MiCuentaLayout({
         .in('listing_id', anuncioIds)
     : { count: 0 }
 
+  // Mensajes no leídos en conversaciones internas
+  const { data: convs } = await supabase
+    .from('conversations')
+    .select('buyer_id, unread_buyer, unread_seller')
+    .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+
+  const unreadConvs = (convs ?? []).reduce((acc, c) => {
+    return acc + (c.buyer_id === user.id ? (c.unread_buyer ?? 0) : (c.unread_seller ?? 0))
+  }, 0)
+
+  const totalMsgCount = (msgCount ?? 0) + unreadConvs
+
   const displayName = profile?.full_name ?? user.email?.split('@')[0] ?? 'Usuario'
   const initials    = displayName.slice(0, 2).toUpperCase()
 
@@ -55,7 +74,8 @@ export default async function MiCuentaLayout({
         initials={initials}
         avatarUrl={profile?.avatar_url ?? null}
         favCount={favCount ?? 0}
-        msgCount={msgCount ?? 0}
+        msgCount={totalMsgCount}
+        alertCount={alertCount ?? 0}
       >
         {children}
       </DashboardSidebar>

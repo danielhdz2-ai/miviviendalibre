@@ -65,14 +65,8 @@ CREATE POLICY "user_docs: usuario actualiza los suyos"
   ON user_documents FOR UPDATE TO authenticated
   USING (user_id = auth.uid());
 
--- Admin puede ver y actualizar todo
-CREATE POLICY "user_docs: admin select"
-  ON user_documents FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM admin_users WHERE email = auth.jwt() ->> 'email'));
-
-CREATE POLICY "user_docs: admin update"
-  ON user_documents FOR UPDATE TO authenticated
-  USING (EXISTS (SELECT 1 FROM admin_users WHERE email = auth.jwt() ->> 'email'));
+-- Nota: el acceso de admin a todos los documentos se gestiona
+-- desde las API routes usando la service_role key (sin RLS).
 
 -- ──────────────────────────────────────────────────────────────────
 -- 3. user_profiles   (nombre, teléfono, bio)

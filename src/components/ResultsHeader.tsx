@@ -1,7 +1,9 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import type { SortOption, VistaOption } from '@/types/listings'
+import SaveAlertButton from './SaveAlertButton'
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'relevancia', label: 'Relevancia' },
@@ -34,11 +36,16 @@ export default function ResultsHeader({ total, onOpenFilters, activeFilterCount 
   return (
     <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
       {/* Contador + botón filtros mobile */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <p className="text-sm text-gray-600">
           <span className="font-bold text-gray-900 text-base">{total.toLocaleString('es-ES')}</span>
           {' '}{total === 1 ? 'resultado' : 'resultados'}
         </p>
+
+        {/* Guardar alerta */}
+        <Suspense>
+          <SaveAlertButton />
+        </Suspense>
 
         {/* Botón filtros (solo mobile) */}
         <button
