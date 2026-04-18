@@ -1,43 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
 const BASE_URL = 'https://inmonest.com'
 
-// Todos los servicios de gestoría con pago directo en Stripe
 const STRIPE_SERVICES: Record<string, { name: string; price_eur: number }> = {
-  'arras-penitenciales':  { name: 'Contrato de Arras Penitenciales',     price_eur: 120 },
-  'arras-confirmatorias': { name: 'Contrato de Arras Confirmatorias',     price_eur: 120 },
-  'reserva-compra':       { name: 'Contrato de Reserva de Compra',        price_eur: 50  },
-  'alquiler-vivienda-lau':{ name: 'Contrato de Alquiler de Vivienda (LAU)', price_eur: 90 },
-  'alquiler-temporada':   { name: 'Contrato de Alquiler por Temporada',   price_eur: 80  },
-  'alquiler-habitacion':  { name: 'Contrato de Alquiler de Habitación',   price_eur: 60  },
-  'reserva-alquiler':     { name: 'Contrato de Reserva de Alquiler',      price_eur: 50  },
-  'rescision-alquiler':   { name: 'Contrato de Rescisión de Alquiler',    price_eur: 60  },
-  'liquidacion-fianza':   { name: 'Liquidación de Fianza',                price_eur: 30  },
-  'devolucion-fianzas':   { name: 'Solicitud de Devolución de Fianzas',   price_eur: 40  },
-}
-
-// Instancia singleton — configurada para entornos serverless (0 reintentos,
-// timeout explícito para no agotar los 30s del plan de Vercel)
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (!_stripe) {
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2026-03-25.dahlia',
-      maxNetworkRetries: 0,  // falla rápido — sin reintentos que agoten el tiempo
-      timeout: 8000,         // 8 segundos máximo por intento
-    })
-  }
-  return _stripe
+  'arras-penitenciales':   { name: 'Contrato de Arras Penitenciales',       price_eur: 120 },
+  'arras-confirmatorias':  { name: 'Contrato de Arras Confirmatorias',       price_eur: 120 },
+  'reserva-compra':        { name: 'Contrato de Reserva de Compra',          price_eur: 50  },
+  'alquiler-vivienda-lau': { name: 'Contrato de Alquiler de Vivienda (LAU)', price_eur: 90  },
+  'alquiler-temporada':    { name: 'Contrato de Alquiler por Temporada',     price_eur: 80  },
+  'alquiler-habitacion':   { name: 'Contrato de Alquiler de Habitación',     price_eur: 60  },
+  'reserva-alquiler':      { name: 'Contrato de Reserva de Alquiler',        price_eur: 50  },
+  'rescision-alquiler':    { name: 'Contrato de Rescisión de Alquiler',      price_eur: 60  },
+  'liquidacion-fianza':    { name: 'Liquidación de Fianza',                  price_eur: 30  },
+  'devolucion-fianzas':    { name: 'Solicitud de Devolución de Fianzas',     price_eur: 40  },
 }
 
 export async function POST(req: NextRequest) {
-  // Verificar que la clave de Stripe está configurada
-  if (!process.env.STRIPE_SECRET_KEY) {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) {
     return NextResponse.json(
-      { error: 'El pago con tarjeta no está disponible en este momento. Contacta con info@inmonest.com' },
+      { error: 'Pago no disponible. Contacta con info@inmonest.com' },
       { status: 503 }
     )
   }
@@ -57,63 +41,58 @@ export async function POST(req: NextRequest) {
 
   const service = STRIPE_SERVICES[service_key]
   if (!service) {
-    return NextResponse.json({ error: 'Servicio no disponible para pago directo' }, { status: 404 })
+    return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
   }
 
-  // Validar email opcional
   const safeEmail = client_email?.trim().slice(0, 200) || undefined
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (safeEmail && !EMAIL_RE.test(safeEmail)) {
     return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
   }
 
-  // Para reserva-compra (requiere documentación): redirect a carga de docs
-  // Para el resto: redirect a página de confirmación
   const successPath = service_key === 'reserva-compra'
     ? '/gestoria/carga-documentos'
     : '/gestoria/gracias'
 
+  // Llamada directa a la API REST de Stripe con fetch nativo (sin SDK)
+  const params = new URLSearchParams()
+  params.set('mode', 'payment')
+  params.set('line_items[0][quantity]', '1')
+  params.set('line_items[0][price_data][currency]', 'eur')
+  params.set('line_items[0][price_data][unit_amount]', String(service.price_eur * 100))
+  params.set('line_items[0][price_data][product_data][name]', service.name)
+  params.set('line_items[0][price_data][product_data][description]', 'Inmonest — Gestoría inmobiliaria')
+  params.set('success_url', `${BASE_URL}${successPath}?session_id={CHECKOUT_SESSION_ID}`)
+  params.set('cancel_url', `${BASE_URL}/gestoria`)
+  params.set('locale', 'es')
+  params.set('payment_method_types[0]', 'card')
+  params.set('billing_address_collection', 'auto')
+  params.set('metadata[service_key]', service_key)
+  params.set('metadata[client_name]',  (client_name?.trim() ?? '').slice(0, 120))
+  params.set('metadata[client_phone]', (client_phone?.trim() ?? '').slice(0, 30))
+  if (safeEmail) params.set('customer_email', safeEmail)
+
   try {
-    const stripe = getStripe()
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: 'eur',
-            unit_amount: service.price_eur * 100,
-            product_data: {
-              name: service.name,
-              description: 'Inmonest — Servicio de gestoría inmobiliaria',
-            },
-          },
-        },
-      ],
-      customer_email: safeEmail,
-      metadata: {
-        service_key,
-        client_name:  client_name?.trim().slice(0, 120) ?? '',
-        client_phone: client_phone?.trim().slice(0, 30) ?? '',
+    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key.trim()}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      success_url: `${BASE_URL}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${BASE_URL}/gestoria`,
-      locale: 'es',
-      payment_method_types: ['card'],
-      billing_address_collection: 'auto',
+      body: params.toString(),
     })
 
-    return NextResponse.json({ url: session.url })
+    const data = await res.json() as { url?: string; error?: { message: string } }
+
+    if (!res.ok) {
+      console.error('[gestoria/checkout] Stripe API error:', data.error)
+      return NextResponse.json({ error: data.error?.message ?? 'Error en Stripe' }, { status: 500 })
+    }
+
+    return NextResponse.json({ url: data.url })
   } catch (err) {
-    // Log completo en servidor para diagnóstico
-    const stripeErr = err as { type?: string; code?: string; message?: string; raw?: unknown }
-    console.error('[gestoria/checkout] Stripe error:', {
-      type:    stripeErr.type,
-      code:    stripeErr.code,
-      message: stripeErr.message,
-      raw:     stripeErr.raw,
-    })
-    const msg = stripeErr.message ?? 'Error al crear la sesión de pago'
+    const msg = err instanceof Error ? err.message : 'Error de red'
+    console.error('[gestoria/checkout] fetch error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
