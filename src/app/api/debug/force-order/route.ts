@@ -42,50 +42,69 @@ async function sendEmail(payload: {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const token      = searchParams.get('token')      ?? ''
-  const session_id = searchParams.get('session_id') ?? ''
+  const token          = searchParams.get('token')          ?? ''
+  const session_id     = searchParams.get('session_id')     ?? ''
+  const payment_intent = searchParams.get('payment_intent') ?? ''
 
   // ── Seguridad básica ─────────────────────────────────────────────────
   if (token !== DEBUG_TOKEN) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
-  if (!session_id.startsWith('cs_')) {
+  if (!session_id.startsWith('cs_') && !payment_intent.startsWith('pi_')) {
     return NextResponse.json({
-      error: 'Falta session_id. Uso: /api/debug/force-order?token=inmonest2026&session_id=cs_xxx'
+      error: 'Parámetro requerido. Uso: ?token=inmonest2026&session_id=cs_xxx  O  ?token=inmonest2026&payment_intent=pi_xxx'
     }, { status: 400 })
   }
 
   const log: string[] = []
   const push = (msg: string) => { console.log('[force-order]', msg); log.push(msg) }
 
-  push(`Procesando sesión: ${session_id}`)
-
-  // ── 1. Obtener sesión de Stripe ──────────────────────────────────────
   const stripeKey = getStripeKey()
   if (!stripeKey) return NextResponse.json({ error: 'STRIPE_SECRET_KEY no configurada', log }, { status: 500 })
 
-  const stripeRes = await fetch(
-    `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(session_id)}`,
-    { headers: { Authorization: `Bearer ${stripeKey}` } }
-  )
-  const session = await stripeRes.json()
+  // ── 1. Obtener sesión de Stripe ──────────────────────────────────────
+  let session: Record<string, unknown>
 
-  if (!stripeRes.ok) {
-    push(`ERROR Stripe: ${session.error?.message}`)
-    return NextResponse.json({ error: session.error?.message, log }, { status: 404 })
+  if (session_id.startsWith('cs_')) {
+    push(`Buscando por session_id: ${session_id}`)
+    const res = await fetch(
+      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(session_id)}`,
+      { headers: { Authorization: `Bearer ${stripeKey}` } }
+    )
+    session = await res.json()
+    if (!res.ok) {
+      push(`ERROR Stripe: ${(session.error as { message?: string })?.message}`)
+      return NextResponse.json({ error: (session.error as { message?: string })?.message, log }, { status: 404 })
+    }
+  } else {
+    // Buscar checkout session por payment_intent
+    push(`Buscando sesión por payment_intent: ${payment_intent}`)
+    const res = await fetch(
+      `https://api.stripe.com/v1/checkout/sessions?payment_intent=${encodeURIComponent(payment_intent)}&limit=1`,
+      { headers: { Authorization: `Bearer ${stripeKey}` } }
+    )
+    const list = await res.json() as { data?: Record<string, unknown>[]; error?: { message: string } }
+    if (!res.ok || !list.data?.length) {
+      const msg = list.error?.message ?? 'No se encontró ninguna sesión para ese payment_intent'
+      push(`ERROR: ${msg}`)
+      return NextResponse.json({ error: msg, log }, { status: 404 })
+    }
+    session = list.data[0]
+    push(`Sesión encontrada: ${session.id}`)
   }
 
   push(`Sesión Stripe OK. payment_status: ${session.payment_status}`)
-  push(`customer_email: ${session.customer_details?.email ?? session.customer_email ?? '(vacío)'}`)
+  const custDetails = session.customer_details as { email?: string } | undefined
+  push(`customer_email: ${custDetails?.email ?? session.customer_email ?? '(vacío)'}`)
 
   if (session.payment_status !== 'paid') {
     push('ADVERTENCIA: pago no completado — procesando igualmente para debug')
   }
 
-  const meta        = session.metadata ?? {}
+  const meta        = (session.metadata as Record<string, string>) ?? {}
   const amountRaw   = typeof session.amount_total === 'number' ? session.amount_total : 0
   const amount      = (amountRaw / 100).toFixed(2)
-  const clientEmail = session.customer_details?.email ?? session.customer_email ?? meta.client_email ?? ''
+  const clientEmail = custDetails?.email ?? (session.customer_email as string) ?? meta.client_email ?? ''
   const clientName  = meta.client_name  ?? 'Cliente'
   const clientPhone = meta.client_phone ?? '—'
   const serviceKey  = meta.service_key  ?? ''
