@@ -51,7 +51,6 @@ export async function GET(request: NextRequest) {
   const { scrapeParticulares } = await import('../../../../scripts/scrapers/pisoscom_particulares')
   const { scrapeMilanuncios }  = await import('../../../../scripts/scrapers/milanuncios')
   const { scrapeSolvia }       = await import('../../../../scripts/scrapers/solvia')
-  const { runTucasa }          = await import('../../../../scripts/scrapers/tucasa_standalone')
   const { runEnalquiler }      = await import('../../../../scripts/scrapers/enalquiler')
 
   // ── pisos.com particulares — alquiler (prioridad máxima) ──────────────────
@@ -61,11 +60,6 @@ export async function GET(request: NextRequest) {
   // ── pisos.com particulares — venta ────────────────────────────────────────
   await run('pisoscom venta madrid',       () => scrapeParticulares('venta', 'madrid',    MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
   await run('pisoscom venta barcelona',    () => scrapeParticulares('venta', 'barcelona', MAX_PAGES, MAX_ITEMS) as Promise<{inserted:number;skipped:number}>)
-
-  // ── tucasa ────────────────────────────────────────────────────────────────
-  await run('tucasa venta madrid',         () => runTucasa('venta',    'madrid',   MAX_PAGES, MAX_ITEMS))
-  await run('tucasa alquiler madrid',      () => runTucasa('alquiler', 'madrid',   MAX_PAGES, MAX_ITEMS))
-  await run('tucasa venta valencia',       () => runTucasa('venta',    'valencia', MAX_PAGES, MAX_ITEMS))
 
   // ── enalquiler (100% particulares, solo alquiler) ─────────────────────────
   await run('enalquiler madrid',           () => runEnalquiler('madrid',    MAX_PAGES, MAX_ITEMS))
