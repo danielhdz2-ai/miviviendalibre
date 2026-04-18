@@ -1,5 +1,5 @@
 # ============================================================
-# Mi Vivienda Libre — Instalar tarea programada
+# Inmonest — Instalar tarea programada
 # Ejecutar UNA VEZ como Administrador:
 # Click derecho en este .ps1 → "Ejecutar con PowerShell (como administrador)"
 # ============================================================
@@ -15,11 +15,11 @@ $settings = New-ScheduledTaskSettingsSet `
   -StartWhenAvailable
 
 Register-ScheduledTask `
-  -TaskName    "MiviviendaLibre-SeedContent" `
+  -TaskName    "Inmonest-SeedContent" `
   -Action      $action `
   -Trigger     $trigger `
   -Settings    $settings `
-  -Description "Genera contenido diario para MiviviendaLibre — 3AM" `
+  -Description "Genera contenido diario para Inmonest — 3AM" `
   -RunLevel    Highest `
   -Force
 

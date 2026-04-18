@@ -140,7 +140,8 @@ export default function PublicarWizard({ userId }: { userId: string }) {
             const { data: urlData } = supabase.storage.from('listings').getPublicUrl(path)
             await supabase.from('listing_images').insert({
               listing_id: listingId,
-              storage_path: urlData.publicUrl,
+              storage_path: path,
+              external_url: urlData.publicUrl,
               position: i,
             })
           }

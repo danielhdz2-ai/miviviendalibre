@@ -1,5 +1,5 @@
 # ============================================================
-# Mi Vivienda Libre — Bot Cazador (Milanuncios Particulares)
+# Inmonest — Bot Cazador (Milanuncios Particulares)
 # Instalar tarea programada — ejecutar UNA VEZ como Administrador:
 #   Click derecho → "Ejecutar con PowerShell (como administrador)"
 # ============================================================
@@ -30,7 +30,7 @@ $settings = New-ScheduledTaskSettingsSet `
   -StartWhenAvailable
 
 Register-ScheduledTask `
-  -TaskName    "MiviviendaLibre-BotCazador" `
+  -TaskName    "Inmonest-BotCazador" `
   -Action      $action `
   -Trigger     $trigger `
   -Settings    $settings `
@@ -39,7 +39,7 @@ Register-ScheduledTask `
   -Force
 
 Write-Host ""
-Write-Host "✅ Tarea 'MiviviendaLibre-BotCazador' registrada!" -ForegroundColor Green
+Write-Host "✅ Tarea 'Inmonest-BotCazador' registrada!" -ForegroundColor Green
 Write-Host "   Ejecucion diaria a las 08:30 AM"
 Write-Host "   Logs en: $scriptDir\logs\cazador.log"
 Write-Host "   Estado en: $scriptDir\logs\cazador-state.json"
