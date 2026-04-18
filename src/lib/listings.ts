@@ -19,44 +19,57 @@ export async function searchListings(params: SearchParams): Promise<{
   const pagina = params.pagina ?? 1
   const offset = (pagina - 1) * PAGE_SIZE
 
-  // Función auxiliar para aplicar los mismos filtros a cualquier query
-  function applyFilters<T extends ReturnType<typeof supabase.from>>(q: T): T {
-    let r = q as ReturnType<typeof supabase.from>
-    r = r.eq('status', 'published').eq('has_images', true)
-    if (params.operacion)       r = r.eq('operation', params.operacion)
-    if (params.ciudad)          r = r.ilike('city', `%${params.ciudad}%`)
-    if (params.solo_particulares) r = r.eq('is_particular', true)
-    if (params.solo_bancarias)  r = r.eq('is_bank', true)
-    if (params.solo_agencias)   r = r.eq('is_particular', false).eq('is_bank', false)
-    if (params.habitaciones_min) r = r.gte('bedrooms', params.habitaciones_min)
-    if (params.habitaciones)    r = r.eq('bedrooms', params.habitaciones)
-    if (params.precio_min)      r = r.gte('price_eur', params.precio_min)
-    if (params.precio_max)      r = r.lte('price_eur', params.precio_max)
-    if (params.area_min)        r = r.gte('area_m2', params.area_min)
-    if (params.area_max)        r = r.lte('area_m2', params.area_max)
-    return r as T
-  }
-
   // ── 1. Count query (sin range → nunca lanza PGRST103) ────────────────
-  const countBase = applyFilters(supabase.from('listings').select('id', { count: 'exact', head: true }))
-  const { count, error: countError } = await countBase
+  let countQuery = supabase
+    .from('listings')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'published')
+    .eq('has_images', true)
+
+  if (params.operacion)        countQuery = countQuery.eq('operation', params.operacion)
+  if (params.ciudad)           countQuery = countQuery.ilike('city', `%${params.ciudad}%`)
+  if (params.solo_particulares) countQuery = countQuery.eq('is_particular', true)
+  if (params.solo_bancarias)   countQuery = countQuery.eq('is_bank', true)
+  if (params.solo_agencias)    countQuery = countQuery.eq('is_particular', false).eq('is_bank', false)
+  if (params.habitaciones_min) countQuery = countQuery.gte('bedrooms', params.habitaciones_min)
+  if (params.habitaciones)     countQuery = countQuery.eq('bedrooms', params.habitaciones)
+  if (params.precio_min)       countQuery = countQuery.gte('price_eur', params.precio_min)
+  if (params.precio_max)       countQuery = countQuery.lte('price_eur', params.precio_max)
+  if (params.area_min)         countQuery = countQuery.gte('area_m2', params.area_min)
+  if (params.area_max)         countQuery = countQuery.lte('area_m2', params.area_max)
+
+  const { count, error: countError } = await countQuery
   if (countError) {
     console.error('[searchListings] count error:', countError.message, '| code:', countError.code)
     return { listings: [], total: 0 }
   }
   const total = count ?? 0
 
-  // Si la página pedida está fuera de rango, devolver vacío con el total real
-  if (offset >= total && total > 0) {
+  // Si no hay resultados o la página está fuera de rango, devolver vacío
+  if (total === 0 || offset >= total) {
     return { listings: [], total }
-  }
-  if (total === 0) {
-    return { listings: [], total: 0 }
   }
 
   // ── 2. Data query (range seguro porque offset < total) ────────────────
-  let dataQuery = applyFilters(supabase.from('listings').select('*'))
-    .range(offset, offset + PAGE_SIZE - 1)
+  let dataQuery = supabase
+    .from('listings')
+    .select('*')
+    .eq('status', 'published')
+    .eq('has_images', true)
+
+  if (params.operacion)        dataQuery = dataQuery.eq('operation', params.operacion)
+  if (params.ciudad)           dataQuery = dataQuery.ilike('city', `%${params.ciudad}%`)
+  if (params.solo_particulares) dataQuery = dataQuery.eq('is_particular', true)
+  if (params.solo_bancarias)   dataQuery = dataQuery.eq('is_bank', true)
+  if (params.solo_agencias)    dataQuery = dataQuery.eq('is_particular', false).eq('is_bank', false)
+  if (params.habitaciones_min) dataQuery = dataQuery.gte('bedrooms', params.habitaciones_min)
+  if (params.habitaciones)     dataQuery = dataQuery.eq('bedrooms', params.habitaciones)
+  if (params.precio_min)       dataQuery = dataQuery.gte('price_eur', params.precio_min)
+  if (params.precio_max)       dataQuery = dataQuery.lte('price_eur', params.precio_max)
+  if (params.area_min)         dataQuery = dataQuery.gte('area_m2', params.area_min)
+  if (params.area_max)         dataQuery = dataQuery.lte('area_m2', params.area_max)
+
+  dataQuery = dataQuery.range(offset, offset + PAGE_SIZE - 1)
 
   switch (params.ordenar) {
     case 'precio_asc':  dataQuery = dataQuery.order('price_eur', { ascending: true, nullsFirst: false }); break
