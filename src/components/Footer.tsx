@@ -11,12 +11,12 @@ export default function Footer() {
           src="/amigos1.jpg"
           alt=""
           fill
-          className="object-cover object-center opacity-10"
+          className="object-cover object-center opacity-20"
           sizes="100vw"
           aria-hidden="true"
         />
         {/* Gradiente oscuro sobre la imagen */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0d1a0f]/80 via-[#0d1a0f]/90 to-[#0d1a0f]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0d1a0f]/60 via-[#0d1a0f]/80 to-[#0d1a0f]" />
       </div>
 
       {/* ── Separador dorado ────────────────────────────────────── */}
