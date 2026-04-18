@@ -17,9 +17,8 @@ export default function GraciasContent() {
       setState('error')
       return
     }
-    // Verificamos el pago llamando al mismo endpoint de upload-urls
-    // pero sólo para confirmar payment_status === 'paid'
-    fetch(`/api/gestoria/confirm-payment?session_id=${sessionId}`)
+    // Verificamos el pago y confirmamos en DB
+    fetch(`/api/gestoria/confirmar-pago?session_id=${sessionId}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) {

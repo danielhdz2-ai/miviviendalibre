@@ -19,39 +19,59 @@ export async function searchListings(params: SearchParams): Promise<{
   const pagina = params.pagina ?? 1
   const offset = (pagina - 1) * PAGE_SIZE
 
-  let query = supabase
-    .from('listings')
-    .select('*', { count: 'exact' })
-    .eq('status', 'published')
-    .eq('has_images', true)
-    .range(offset, offset + PAGE_SIZE - 1)
-
-  if (params.operacion) query = query.eq('operation', params.operacion)
-  if (params.ciudad) query = query.ilike('city', `%${params.ciudad}%`)
-  if (params.solo_particulares) query = query.eq('is_particular', true)
-  if (params.solo_bancarias)    query = query.eq('is_bank', true)
-  if (params.solo_agencias)    query = query.eq('is_particular', false).eq('is_bank', false)
-  if (params.habitaciones_min) query = query.gte('bedrooms', params.habitaciones_min)
-  if (params.habitaciones) query = query.eq('bedrooms', params.habitaciones)
-  if (params.precio_min) query = query.gte('price_eur', params.precio_min)
-  if (params.precio_max) query = query.lte('price_eur', params.precio_max)
-  if (params.area_min) query = query.gte('area_m2', params.area_min)
-  if (params.area_max) query = query.lte('area_m2', params.area_max)
-
-  switch (params.ordenar) {
-    case 'precio_asc':  query = query.order('price_eur', { ascending: true, nullsFirst: false }); break
-    case 'precio_desc': query = query.order('price_eur', { ascending: false, nullsFirst: false }); break
-    case 'recientes':   query = query.order('published_at', { ascending: false }); break
-    case 'superficie':  query = query.order('area_m2', { ascending: false, nullsFirst: false }); break
-    default:
-      query = query.order('ranking_score', { ascending: false }).order('published_at', { ascending: false })
+  // Función auxiliar para aplicar los mismos filtros a cualquier query
+  function applyFilters<T extends ReturnType<typeof supabase.from>>(q: T): T {
+    let r = q as ReturnType<typeof supabase.from>
+    r = r.eq('status', 'published').eq('has_images', true)
+    if (params.operacion)       r = r.eq('operation', params.operacion)
+    if (params.ciudad)          r = r.ilike('city', `%${params.ciudad}%`)
+    if (params.solo_particulares) r = r.eq('is_particular', true)
+    if (params.solo_bancarias)  r = r.eq('is_bank', true)
+    if (params.solo_agencias)   r = r.eq('is_particular', false).eq('is_bank', false)
+    if (params.habitaciones_min) r = r.gte('bedrooms', params.habitaciones_min)
+    if (params.habitaciones)    r = r.eq('bedrooms', params.habitaciones)
+    if (params.precio_min)      r = r.gte('price_eur', params.precio_min)
+    if (params.precio_max)      r = r.lte('price_eur', params.precio_max)
+    if (params.area_min)        r = r.gte('area_m2', params.area_min)
+    if (params.area_max)        r = r.lte('area_m2', params.area_max)
+    return r as T
   }
 
-  const { data, error, count } = await query
+  // ── 1. Count query (sin range → nunca lanza PGRST103) ────────────────
+  const countBase = applyFilters(supabase.from('listings').select('id', { count: 'exact', head: true }))
+  const { count, error: countError } = await countBase
+  if (countError) {
+    console.error('[searchListings] count error:', countError.message, '| code:', countError.code)
+    return { listings: [], total: 0 }
+  }
+  const total = count ?? 0
+
+  // Si la página pedida está fuera de rango, devolver vacío con el total real
+  if (offset >= total && total > 0) {
+    return { listings: [], total }
+  }
+  if (total === 0) {
+    return { listings: [], total: 0 }
+  }
+
+  // ── 2. Data query (range seguro porque offset < total) ────────────────
+  let dataQuery = applyFilters(supabase.from('listings').select('*'))
+    .range(offset, offset + PAGE_SIZE - 1)
+
+  switch (params.ordenar) {
+    case 'precio_asc':  dataQuery = dataQuery.order('price_eur', { ascending: true, nullsFirst: false }); break
+    case 'precio_desc': dataQuery = dataQuery.order('price_eur', { ascending: false, nullsFirst: false }); break
+    case 'recientes':   dataQuery = dataQuery.order('published_at', { ascending: false }); break
+    case 'superficie':  dataQuery = dataQuery.order('area_m2', { ascending: false, nullsFirst: false }); break
+    default:
+      dataQuery = dataQuery.order('ranking_score', { ascending: false }).order('published_at', { ascending: false })
+  }
+
+  const { data, error } = await dataQuery
 
   if (error) {
-    console.error('[searchListings] ERROR:', error.message, '| code:', error.code)
-    return { listings: [], total: 0 }
+    console.error('[searchListings] data error:', error.message, '| code:', error.code)
+    return { listings: [], total }
   }
 
   // Batch-load imágenes (máx 5 por listing) en una sola query
@@ -78,7 +98,7 @@ export async function searchListings(params: SearchParams): Promise<{
     }
   }
 
-  return { listings: rows as Listing[], total: count ?? 0 }
+  return { listings: rows as Listing[], total }
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
