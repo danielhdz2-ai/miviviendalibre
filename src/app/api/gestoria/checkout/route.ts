@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getStripeKey } from '@/lib/stripe-key'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ const STRIPE_SERVICES: Record<string, { name: string; price_eur: number }> = {
 }
 
 export async function POST(req: NextRequest) {
-  const key = process.env.STRIPE_SECRET_KEY
+  const key = getStripeKey()
   if (!key) {
     return NextResponse.json(
       { error: 'Pago no disponible. Contacta con info@inmonest.com' },
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${key.trim()}`,
+        'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: params.toString(),

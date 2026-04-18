@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getStripeKey } from '@/lib/stripe-key'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'session_id inválido' }, { status: 400 })
   }
 
-  const key = process.env.STRIPE_SECRET_KEY
+  const key = getStripeKey()
   if (!key) {
     console.error('[confirmar-pago] STRIPE_SECRET_KEY no configurada')
     return NextResponse.json({ error: 'Pago no disponible temporalmente' }, { status: 503 })
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(
       `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(session_id)}`,
-      { headers: { Authorization: `Bearer ${key.trim()}` } }
+      { headers: { Authorization: `Bearer ${key}` } }
     )
     session = await res.json() as StripeSession
     if (!res.ok) {
