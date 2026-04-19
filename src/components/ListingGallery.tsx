@@ -237,16 +237,6 @@ export default function ListingGallery({ images, title, lat, lng, priceLabel }: 
   )
 }
 
-
-export default function ListingGallery({ images, title, lat, lng, priceLabel }: Props) {
-  const [current, setCurrent] = useState(0)
-  const [lightbox, setLightbox] = useState(false)
-  const [lightboxTab, setLightboxTab] = useState<'fotos' | 'mapa'>('fotos')
-
-  const prev = useCallback(() => {
-    setCurrent(c => (c - 1 + images.length) % images.length)
-  }, [images.length])
-
   const next = useCallback(() => {
     setCurrent(c => (c + 1) % images.length)
   }, [images.length])
