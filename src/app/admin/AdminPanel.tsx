@@ -50,14 +50,48 @@ interface ClientDoc {
   uploaded_at: string
 }
 
+interface UserDocument {
+  id: string
+  user_id: string
+  user_email: string
+  user_name: string
+  doc_key: string
+  file_name: string
+  status: string
+  uploaded_at: string
+  notes: string | null
+  storage_path: string
+}
+
+const DOC_LABELS: Record<string, string> = {
+  'dni':                  '🪪 DNI / CIF',
+  'nomina':               '💼 Nómina',
+  'escrituras':           '📜 Escrituras',
+  'nota-simple':          '🏛️ Nota Simple',
+  'contrato-alquiler':    '📋 Contrato Alquiler/Arras',
+  'cert-energetico':      '⚡ Cert. Energético',
+  'cedula-habitabilidad': '🏠 Cédula Habitabilidad',
+  'facturas':             '🧾 Facturas',
+  'otro':                 '📄 Otros',
+}
+
+const STATUS_OPTS = [
+  { value: 'uploaded',  label: 'Subido',      color: 'bg-blue-100 text-blue-700' },
+  { value: 'reviewing', label: 'En revisión', color: 'bg-amber-100 text-amber-700' },
+  { value: 'validated', label: 'Validado',    color: 'bg-green-100 text-green-700' },
+  { value: 'rejected',  label: 'Rechazado',   color: 'bg-red-100 text-red-700' },
+]
+
 interface Props {
   initialRequests: GestoriaRequest[]
 }
 
 export default function AdminPanel({ initialRequests }: Props) {
   const [requests, setRequests]     = useState<GestoriaRequest[]>(initialRequests)
-  const [tab, setTab]               = useState<'pedidos' | 'boveda'>('pedidos')
+  const [tab, setTab]               = useState<'pedidos' | 'boveda' | 'userdocs'>('pedidos')
   const [selected, setSelected]     = useState<GestoriaRequest | null>(null)
+  const [userDocs, setUserDocs]     = useState<UserDocument[] | null>(null)
+  const [userDocsLoading, setUserDocsLoading] = useState(false)
   const [docs, setDocs]             = useState<ClientDoc[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
   const [stepSaving, setStepSaving] = useState(false)
@@ -172,8 +206,9 @@ export default function AdminPanel({ initialRequests }: Props) {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 w-fit">
         {([
-          { id: 'pedidos', label: '📋 Pedidos' },
-          { id: 'boveda',  label: '🔒 Boveda de documentos' },
+          { id: 'pedidos',  label: '📋 Pedidos' },
+          { id: 'boveda',   label: '🔒 Bóveda' },
+          { id: 'userdocs', label: '📂 Docs usuarios' },
         ] as const).map(t => (
           <button
             key={t.id}
@@ -377,6 +412,30 @@ export default function AdminPanel({ initialRequests }: Props) {
           </div>
         </div>
       )}
+
+      {/* ── TAB DOCUMENTOS USUARIOS ─────────────────────────────────────────── */}
+      {tab === 'userdocs' && (
+        <UserDocsTab
+          docs={userDocs}
+          loading={userDocsLoading}
+          onLoad={async () => {
+            if (userDocs !== null) return
+            setUserDocsLoading(true)
+            try {
+              const res  = await fetch('/api/admin/user-docs')
+              const data = await res.json()
+              setUserDocs(data.docs ?? [])
+            } finally {
+              setUserDocsLoading(false)
+            }
+          }}
+          onStatusChange={(docId, status, notes) => {
+            setUserDocs(prev => (prev ?? []).map(d =>
+              d.id === docId ? { ...d, status, notes } : d
+            ))
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -449,6 +508,199 @@ function BoveadaRow({ req, serviceLabel }: { req: GestoriaRequest; serviceLabel:
               ))}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Documentos personales de usuarios ────────────────────────────────────────
+interface UserDocsTabProps {
+  docs: UserDocument[] | null
+  loading: boolean
+  onLoad: () => void
+  onStatusChange: (docId: string, status: string, notes: string | null) => void
+}
+
+function UserDocsTab({ docs, loading, onLoad, onStatusChange }: UserDocsTabProps) {
+  const [editingId, setEditingId]   = useState<string | null>(null)
+  const [editNotes, setEditNotes]   = useState('')
+  const [editStatus, setEditStatus] = useState('')
+  const [saving, setSaving]         = useState(false)
+
+  // Cargar al montar el tab
+  const loadedRef = useState(false)
+  if (!loadedRef[0]) { loadedRef[1](true); onLoad() }
+
+  async function handleDownload(doc: UserDocument) {
+    const res  = await fetch('/api/admin/user-docs', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ storage_path: doc.storage_path }),
+    })
+    const data = await res.json()
+    if (data.url) window.open(data.url, '_blank')
+    else alert('No se pudo generar el enlace')
+  }
+
+  async function handleSave(doc: UserDocument) {
+    setSaving(true)
+    try {
+      const res  = await fetch('/api/admin/user-docs', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ doc_id: doc.id, status: editStatus, notes: editNotes || null }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        onStatusChange(doc.id, editStatus, editNotes || null)
+        setEditingId(null)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading || !docs) {
+    return (
+      <div className="flex justify-center py-20">
+        <span className="animate-spin w-8 h-8 border-2 border-[#c9962a] border-t-transparent rounded-full" />
+      </div>
+    )
+  }
+
+  // Agrupar por usuario
+  const byUser: Record<string, { email: string; name: string; docs: UserDocument[] }> = {}
+  for (const doc of docs) {
+    if (!byUser[doc.user_id]) byUser[doc.user_id] = { email: doc.user_email, name: doc.user_name, docs: [] }
+    byUser[doc.user_id].docs.push(doc)
+  }
+  const users = Object.entries(byUser)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Documentos personales de usuarios</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {docs.length} documento{docs.length !== 1 ? 's' : ''} de {users.length} usuario{users.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg">
+          Acceso solo admin · URLs firmadas 1h
+        </span>
+      </div>
+
+      {users.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center">
+          <div className="text-4xl mb-3">📂</div>
+          <p className="text-gray-400 text-sm">Ningun usuario ha subido documentos todavia</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {users.map(([userId, user]) => (
+            <div key={userId} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              {/* Header del usuario */}
+              <div className="flex items-center gap-3 px-5 py-4 bg-gray-50 border-b border-gray-100">
+                <div className="w-8 h-8 rounded-full bg-[#c9962a]/20 flex items-center justify-center text-sm font-bold text-[#c9962a]">
+                  {user.email[0]?.toUpperCase()}
+                </div>
+                <div>
+                  {user.name && <p className="text-sm font-semibold text-gray-900">{user.name}</p>}
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+                <span className="ml-auto text-xs bg-white border border-gray-200 text-gray-600 px-2.5 py-1 rounded-full">
+                  {user.docs.length} doc{user.docs.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Documentos del usuario */}
+              <div className="divide-y divide-gray-100">
+                {user.docs.map(doc => {
+                  const statusCfg = STATUS_OPTS.find(s => s.value === doc.status) ?? STATUS_OPTS[0]
+                  const isEditing = editingId === doc.id
+                  return (
+                    <div key={doc.id} className="px-5 py-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-gray-900">
+                              {DOC_LABELS[doc.doc_key] ?? doc.doc_key}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusCfg.color}`}>
+                              {statusCfg.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">{doc.file_name}</p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(doc.uploaded_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {doc.notes && !isEditing && (
+                            <p className="text-xs text-gray-600 bg-gray-50 rounded-lg px-2.5 py-1.5 mt-2">{doc.notes}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleDownload(doc)}
+                            className="flex items-center gap-1.5 text-xs bg-[#c9962a] hover:bg-[#b8841e] text-white px-3 py-1.5 rounded-lg transition-colors font-medium"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Descargar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(isEditing ? null : doc.id)
+                              setEditStatus(doc.status)
+                              setEditNotes(doc.notes ?? '')
+                            }}
+                            className="text-xs border border-gray-200 hover:border-gray-400 text-gray-600 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            {isEditing ? 'Cancelar' : 'Revisar'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {isEditing && (
+                        <div className="mt-3 bg-gray-50 rounded-xl p-3 space-y-3">
+                          <div className="flex gap-2 flex-wrap">
+                            {STATUS_OPTS.map(s => (
+                              <button
+                                key={s.value}
+                                onClick={() => setEditStatus(s.value)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                                  editStatus === s.value
+                                    ? s.color + ' border-current'
+                                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                                }`}
+                              >
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            className="w-full border border-gray-200 rounded-lg p-2 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-[#c9962a]"
+                            rows={2}
+                            placeholder="Notas internas (visible solo para admin)..."
+                            value={editNotes}
+                            onChange={e => setEditNotes(e.target.value)}
+                          />
+                          <button
+                            onClick={() => handleSave(doc)}
+                            disabled={saving}
+                            className="bg-gray-900 hover:bg-gray-700 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-60 transition-colors"
+                          >
+                            {saving ? 'Guardando...' : 'Guardar cambios'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
