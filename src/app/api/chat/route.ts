@@ -98,7 +98,23 @@ async function callOpenRouter(apiKey: string, lastUserMsg: string): Promise<stri
   return data.choices?.[0]?.message?.content?.trim() ?? ''
 }
 
+// Verificar que la petición viene del propio portal (evitar abuso externo de la IA)
+function isAllowedOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get('origin') ?? ''
+  const host = req.headers.get('host') ?? ''
+  // En desarrollo local siempre permitir
+  if (process.env.NODE_ENV !== 'production') return true
+  // En producción solo aceptar desde el mismo dominio
+  const allowed = ['https://inmonest.com', 'https://www.inmonest.com']
+  return allowed.some((o) => origin.startsWith(o)) || host.includes('inmonest.com')
+}
+
 export async function POST(req: NextRequest) {
+  // Bloquear peticiones externas (bots, scrapers, abuso de IA)
+  if (!isAllowedOrigin(req)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   let body: { messages?: Array<{ role: string; content: string }> }
   try {
     body = await req.json()
@@ -109,10 +125,17 @@ export async function POST(req: NextRequest) {
   const messages = body.messages ?? []
   if (!messages.length) return NextResponse.json({ error: 'Sin mensajes' }, { status: 422 })
 
-  const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+  // Limitar longitud de cada mensaje para evitar tokens excesivos
+  const MAX_MSG_LEN = 500
+  const sanitized = messages.map((m) => ({
+    ...m,
+    content: typeof m.content === 'string' ? m.content.slice(0, MAX_MSG_LEN) : '',
+  }))
+
+  const lastUser = [...sanitized].reverse().find((m) => m.role === 'user')
   if (!lastUser) return NextResponse.json({ error: 'Sin mensaje de usuario' }, { status: 422 })
 
-  const recent = messages.slice(-6)
+  const recent = sanitized.slice(-6)
   const geminiKey = getGeminiKey()
   const openrouterKey = getOpenRouterKey()
 

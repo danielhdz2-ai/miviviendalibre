@@ -1,10 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 import { searchListings } from '@/lib/listings'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+function isAdmin(req: NextRequest): boolean {
+  const token = req.headers.get('x-debug-token') ?? req.nextUrl.searchParams.get('token') ?? ''
+  const adminEmail = process.env.CONTACT_NOTIFY_EMAIL ?? ''
+  return token.length > 0 && token === adminEmail
+}
+
+export async function GET(req: NextRequest) {
+  if (!isAdmin(req)) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const db = createClient(url, key)
