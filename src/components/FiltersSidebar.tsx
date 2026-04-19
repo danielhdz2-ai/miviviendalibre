@@ -406,7 +406,7 @@ export default function FiltersSidebar({ isOpen, onClose }: FiltersSidebarProps)
     <>
       {/* Desktop: sidebar fija */}
       <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
-        <div className="sticky top-20 bg-white rounded-xl border border-gray-100 shadow-sm p-5 max-h-[calc(100vh-6rem)] overflow-y-auto">
+        <div className="sticky top-20 bg-white p-5">
           {panel}
         </div>
       </aside>

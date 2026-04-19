@@ -203,7 +203,7 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
           />
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
           {/* Breadcrumb + título */}
           <div className="mb-4">
             <nav className="text-xs text-gray-400 flex items-center gap-1.5 mb-1">
