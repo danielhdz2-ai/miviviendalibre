@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import FiltersPanel from './FiltersPanel'
+import FiltersSidebar from './FiltersSidebar'
 import ResultsHeader from './ResultsHeader'
 import ListingCard from './ListingCard'
 import ListingCardList from './ListingCardList'
@@ -25,6 +25,13 @@ interface CurrentParams {
   banosMin?: number
   areaMin?: number
   areaMax?: number
+  // Filtros pro
+  estado?: string
+  caract?: string
+  planta?: string
+  energia?: string
+  multimedia?: string
+  fechaPub?: string
 }
 
 interface SearchResultsProps {
@@ -63,6 +70,12 @@ export default function SearchResults({
     if (currentParams.banosMin) p.set('banos', String(currentParams.banosMin))
     if (currentParams.areaMin) p.set('area_min', String(currentParams.areaMin))
     if (currentParams.areaMax) p.set('area_max', String(currentParams.areaMax))
+    if (currentParams.estado) p.set('estado', currentParams.estado)
+    if (currentParams.caract) p.set('caract', currentParams.caract)
+    if (currentParams.planta) p.set('planta', currentParams.planta)
+    if (currentParams.energia) p.set('energia', currentParams.energia)
+    if (currentParams.multimedia) p.set('multimedia', currentParams.multimedia)
+    if (currentParams.fechaPub) p.set('fecha_pub', currentParams.fechaPub)
     Object.entries(overrides).forEach(([k, v]) => {
       if (v) p.set(k, v)
       else p.delete(k)
@@ -73,7 +86,7 @@ export default function SearchResults({
   return (
     <div className={`flex gap-6 items-start ${vista === 'mapa' ? 'overflow-hidden' : ''}`}>
       {/* Sidebar filtros — oculto en vista mapa (el chat IA reemplaza su función) */}
-      {vista !== 'mapa' && <FiltersPanel isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} />}
+      {vista !== 'mapa' && <FiltersSidebar isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} />}
 
       {/* Columna principal */}
       <div className="flex-1 min-w-0">
@@ -104,6 +117,12 @@ export default function SearchResults({
                 if (currentParams.banosMin) p.set('banos', String(currentParams.banosMin))
                 if (currentParams.areaMin) p.set('area_min', String(currentParams.areaMin))
                 if (currentParams.areaMax) p.set('area_max', String(currentParams.areaMax))
+                if (currentParams.estado) p.set('estado', currentParams.estado)
+                if (currentParams.caract) p.set('caract', currentParams.caract)
+                if (currentParams.planta) p.set('planta', currentParams.planta)
+                if (currentParams.energia) p.set('energia', currentParams.energia)
+                if (currentParams.multimedia) p.set('multimedia', currentParams.multimedia)
+                if (currentParams.fechaPub) p.set('fecha_pub', currentParams.fechaPub)
                 return p.toString()
               })()}
             />

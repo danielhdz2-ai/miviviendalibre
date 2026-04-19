@@ -169,7 +169,7 @@ SELECT
   l.city           AS listing_city,
   (SELECT li.external_url FROM listing_images li
    WHERE li.listing_id = c.listing_id
-   ORDER BY li.display_order ASC NULLS LAST LIMIT 1) AS listing_image,
+   ORDER BY li.created_at ASC NULLS LAST LIMIT 1) AS listing_image,
   c.buyer_id,
   c.seller_id,
   c.last_message,

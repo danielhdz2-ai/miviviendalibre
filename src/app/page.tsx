@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/NavbarServer'
 import SearchForm from '@/components/SearchForm'
+import BentoVentajas from '@/components/BentoVentajas'
 
 const CIUDADES_POPULARES = [
   { nombre: 'Madrid', slug: 'madrid' },
@@ -12,29 +13,6 @@ const CIUDADES_POPULARES = [
   { nombre: 'Bilbao', slug: 'bilbao' },
   { nombre: 'Zaragoza', slug: 'zaragoza' },
   { nombre: 'Alicante', slug: 'alicante' },
-]
-
-const VENTAJAS = [
-  {
-    icon: '🔍',
-    titulo: 'Solo particulares',
-    desc: 'Filtramos automáticamente anuncios de agencias. Solo verás propietarios reales.',
-  },
-  {
-    icon: '💬',
-    titulo: 'Trato directo',
-    desc: 'Contacta directamente con el dueño del piso. Sin intermediarios que encarezcan el alquiler.',
-  },
-  {
-    icon: '📄',
-    titulo: 'Contratos seguros',
-    desc: 'Contratos de alquiler, arras y reserva redactados y revisados por nuestro equipo jurídico.',
-  },
-  {
-    icon: '🆓',
-    titulo: 'Publicar es gratis',
-    desc: 'Sube tu anuncio sin coste. Gana visibilidad extra con nuestro servicio Turbo opcional.',
-  },
 ]
 
 export default function Home() {
@@ -111,24 +89,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Ventajas ────────────────────────────────────────────── */}
-      <section className="bg-[#fffdf5] border-y border-[#f4c94a]/20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-            ¿Por qué Inmonest?
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {VENTAJAS.map((v) => (
-              <div
-                key={v.titulo}
-                className="flex flex-col items-center text-center p-6 rounded-xl bg-white border border-[#f4c94a]/30 shadow-sm hover:shadow-md hover:border-[#c9962a]/50 transition-all"
-              >
-                <span className="text-3xl mb-3">{v.icon}</span>
-                <h3 className="font-semibold text-gray-900 mb-1.5">{v.titulo}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{v.desc}</p>
-              </div>
-            ))}
+      {/* ── ¿Por qué Inmonest? — Bento Grid ───────────────────── */}
+      <section className="bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div className="text-center mb-10">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#c9962a]/15 text-[#a87a20] border border-[#c9962a]/25 mb-4">
+              ✦ Nuestra propuesta de valor
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+              ¿Por qué Inmonest?
+            </h2>
+            <p className="mt-3 text-gray-500 text-base max-w-xl mx-auto">
+              Todo lo que necesitas para alquilar o comprar sin agencias, sin comisiones y con total seguridad.
+            </p>
           </div>
+          <BentoVentajas />
         </div>
       </section>
 

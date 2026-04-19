@@ -33,6 +33,13 @@ function buildFilters(params: URLSearchParams): Record<string, unknown> {
   if (params.get('area_max'))          f.area_max          = Number(params.get('area_max'))
   if (params.get('solo_particulares')) f.solo_particulares = true
   if (params.get('solo_bancarias'))    f.solo_bancarias    = true
+  // Filtros pro
+  if (params.get('estado'))            f.estado            = params.get('estado')
+  if (params.get('caract'))            f.caract            = params.get('caract')
+  if (params.get('planta'))            f.planta            = params.get('planta')
+  if (params.get('energia'))           f.energia           = params.get('energia')
+  if (params.get('multimedia'))        f.multimedia        = params.get('multimedia')
+  if (params.get('fecha_pub'))         f.fecha_pub         = params.get('fecha_pub')
   return f
 }
 

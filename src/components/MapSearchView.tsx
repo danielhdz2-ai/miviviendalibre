@@ -112,16 +112,20 @@ export default function MapSearchView({ listings, total, ciudad, searchQuery }: 
   const listRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef<Record<string, HTMLAnchorElement | null>>({})
 
-  // Añadir coords de ciudad como fallback para listings sin lat/lng exacto (solo para la lista)
+  // Añadir coords de ciudad como fallback para listings sin lat/lng exacto
+  // Radio ~2.5 km para dispersar los puntos visualmente por la ciudad
   const listingsWithCoords = listings.map((l) => {
     if (l.lat != null && l.lng != null) return l
     const cityKey = l.city?.toLowerCase().trim() ?? ''
     const fallback = CIUDAD_COORDS[cityKey]
     if (!fallback) return l
-    return { ...l, lat: fallback[0] + (Math.random() - 0.5) * 0.01, lng: fallback[1] + (Math.random() - 0.5) * 0.01, _cityFallback: true }
+    const jitterLat = (Math.random() - 0.5) * 0.05
+    const jitterLng = (Math.random() - 0.5) * 0.05
+    return { ...l, lat: fallback[0] + jitterLat, lng: fallback[1] + jitterLng, _cityFallback: true }
   })
+  // Incluir también los city-fallback para que aparezcan como puntos en el mapa
   const withCoords = listingsWithCoords.filter(
-    (l) => l.lat != null && l.lng != null && !(l as Record<string, unknown>)._cityFallback
+    (l) => l.lat != null && l.lng != null
   )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

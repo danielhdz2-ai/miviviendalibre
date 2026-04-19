@@ -61,6 +61,14 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
   const areaMin = params.area_min ? parseInt(params.area_min, 10) : undefined
   const areaMax = params.area_max ? parseInt(params.area_max, 10) : undefined
 
+  // Filtros pro
+  const estado     = params.estado     || undefined
+  const caract     = params.caract     || undefined
+  const planta     = params.planta     || undefined
+  const energia    = params.energia    || undefined
+  const multimedia = params.multimedia || undefined
+  const fechaPub   = params.fecha_pub  || undefined
+
   const { listings, total } = await searchListings({
     ciudad: ciudad || undefined,
     operacion,
@@ -75,14 +83,21 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
     area_min: areaMin,
     area_max: areaMax,
     pagina,
+    estado,
+    caract,
+    planta,
+    energia,
+    multimedia,
+    fecha_pub: fechaPub,
   })
 
   const totalPaginas = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   // Contar filtros activos (para badge en mobile)
-  const activeFilterCount = [precioMin, precioMax, habitaciones, banosMin, areaMin, areaMax].filter(
-    (v) => v != null
-  ).length
+  const activeFilterCount = [
+    precioMin, precioMax, habitaciones, banosMin, areaMin, areaMax,
+    estado, caract, planta, energia, multimedia, fechaPub,
+  ].filter((v) => v != null && v !== '').length
 
   // Título SEO de la página
   const pageTitle = ciudad
@@ -177,6 +192,12 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
               banosMin,
               areaMin,
               areaMax,
+              estado,
+              caract,
+              planta,
+              energia,
+              multimedia,
+              fechaPub,
             }}
             activeFilterCount={activeFilterCount}
           />
@@ -246,6 +267,12 @@ export default async function PisosPage({ searchParams }: PisosPageProps) {
               banosMin,
               areaMin,
               areaMax,
+              estado,
+              caract,
+              planta,
+              energia,
+              multimedia,
+              fechaPub,
             }}
             activeFilterCount={activeFilterCount}
           />

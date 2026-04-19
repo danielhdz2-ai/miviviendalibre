@@ -1,6 +1,7 @@
 import { createClient as createClient_ } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import type { Listing, SearchParams } from '@/types/listings'
+import { applyProFilters, parseProParams } from '@/lib/search-filters'
 
 const PAGE_SIZE = 50
 
@@ -38,6 +39,9 @@ export async function searchListings(params: SearchParams): Promise<{
   if (params.area_min)         countQuery = countQuery.gte('area_m2', params.area_min)
   if (params.area_max)         countQuery = countQuery.lte('area_m2', params.area_max)
 
+  const pro = parseProParams(params)
+  countQuery = applyProFilters(countQuery, pro)
+
   const { count, error: countError } = await countQuery
   if (countError) {
     console.error('[searchListings] count error:', countError.message, '| code:', countError.code)
@@ -68,6 +72,8 @@ export async function searchListings(params: SearchParams): Promise<{
   if (params.precio_max)       dataQuery = dataQuery.lte('price_eur', params.precio_max)
   if (params.area_min)         dataQuery = dataQuery.gte('area_m2', params.area_min)
   if (params.area_max)         dataQuery = dataQuery.lte('area_m2', params.area_max)
+
+  dataQuery = applyProFilters(dataQuery, pro)
 
   dataQuery = dataQuery.range(offset, offset + PAGE_SIZE - 1)
 

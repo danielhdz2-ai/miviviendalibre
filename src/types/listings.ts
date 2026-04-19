@@ -68,6 +68,13 @@ export interface SearchParams {
   ordenar?: SortOption
   vista?: VistaOption
   pagina?: number
+  // Filtros pro
+  estado?: string
+  caract?: string
+  planta?: string
+  energia?: string
+  multimedia?: string
+  fecha_pub?: string
 }
 
 export type DetectParticularResult = {

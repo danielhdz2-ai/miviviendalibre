@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { applyProFilters, parseProParams } from '@/lib/search-filters'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -39,6 +40,16 @@ export async function GET(req: Request) {
   }
   if (areaMin != null) query = query.gte('area_m2', areaMin)
   if (areaMax != null) query = query.lte('area_m2', areaMax)
+
+  // Filtros pro (ascensor, piscina, estado, energía, etc.)
+  query = applyProFilters(query, parseProParams({
+    estado:     searchParams.get('estado')     ?? undefined,
+    caract:     searchParams.get('caract')     ?? undefined,
+    planta:     searchParams.get('planta')     ?? undefined,
+    energia:    searchParams.get('energia')    ?? undefined,
+    multimedia: searchParams.get('multimedia') ?? undefined,
+    fecha_pub:  searchParams.get('fecha_pub')  ?? undefined,
+  }))
 
   const { data, error } = await query
 
