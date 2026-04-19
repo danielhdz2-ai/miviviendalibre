@@ -237,10 +237,6 @@ export default function ListingGallery({ images, title, lat, lng, priceLabel }: 
   )
 }
 
-  const next = useCallback(() => {
-    setCurrent(c => (c + 1) % images.length)
-  }, [images.length])
-
   // Teclado dentro del lightbox
   useEffect(() => {
     if (!lightbox) return
