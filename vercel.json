@@ -3,17 +3,24 @@
     "src/app/api/gestoria/checkout/route.ts": { "maxDuration": 30 },
     "src/app/api/stripe/checkout/route.ts":   { "maxDuration": 30 }
   },
-  "rewrites": [
-    {
-      "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
-    }
-  ],
+  "rewrites": [],
   "headers": [
     {
       "source": "/sitemap.xml",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(gestoria|vender-casa|agencias|publicar-anuncio|contacto|seguridad|blog|pisos)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" }
+      ]
+    },
+    {
+      "source": "/:ciudad/(alquiler-particulares|alquiler-sin-agencia|contrato-alquiler|contrato-arras|vender-piso|pisos)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=7200" }
       ]
     }
   ],

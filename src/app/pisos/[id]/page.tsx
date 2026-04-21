@@ -8,8 +8,10 @@ import ViewTracker from './ViewTracker'
 import ListingGallery from '@/components/ListingGallery'
 import DescriptionExpand from './DescriptionExpand'
 import RevealContact from './RevealContact'
-import { getListingById } from '@/lib/listings'
+import SimilarListingsCarousel from '@/components/SimilarListingsCarousel'
+import { getListingById, getSimilarListings } from '@/lib/listings'
 import { createClient } from '@/lib/supabase/server'
+import { decodeHtml } from '@/lib/html'
 import type { Metadata } from 'next'
 
 interface Props {
@@ -22,8 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const listing = await getListingById(id)
   if (!listing) return { title: 'Anuncio no encontrado' }
   return {
-    title: `${listing.title} — Inmonest`,
-    description: listing.description?.slice(0, 160) ?? undefined,
+    title: `${decodeHtml(listing.title)} — Inmonest`,
+    description: decodeHtml(listing.description)?.slice(0, 160) ?? undefined,
   }
 }
 
@@ -37,21 +39,83 @@ function formatPrice(price: number | null, operation: string): string {
   return operation === 'rent' ? `${formatted}/mes` : formatted
 }
 
+// Coordenadas aproximadas de ciudades españolas (fallback cuando Nominatim falla)
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  'madrid':       { lat: 40.4168, lng: -3.7038 },
+  'barcelona':    { lat: 41.3851, lng: 2.1734  },
+  'valencia':     { lat: 39.4699, lng: -0.3763 },
+  'sevilla':      { lat: 37.3891, lng: -5.9845 },
+  'zaragoza':     { lat: 41.6488, lng: -0.8891 },
+  'málaga':       { lat: 36.7213, lng: -4.4214 },
+  'malaga':       { lat: 36.7213, lng: -4.4214 },
+  'bilbao':       { lat: 43.2630, lng: -2.9350 },
+  'granada':      { lat: 37.1773, lng: -3.5986 },
+  'murcia':       { lat: 37.9922, lng: -1.1307 },
+  'alicante':     { lat: 38.3452, lng: -0.4815 },
+  'valladolid':   { lat: 41.6523, lng: -4.7245 },
+  'pamplona':     { lat: 42.8169, lng: -1.6432 },
+  'santander':    { lat: 43.4623, lng: -3.8099 },
+  'córdoba':      { lat: 37.8882, lng: -4.7794 },
+  'cordoba':      { lat: 37.8882, lng: -4.7794 },
+  'palma':        { lat: 39.5696, lng: 2.6502  },
+  'las palmas':   { lat: 28.1235, lng: -15.4366},
+  'santa cruz de tenerife': { lat: 28.4636, lng: -16.2518 },
+  'vitoria':      { lat: 42.8467, lng: -2.6726 },
+  'oviedo':       { lat: 43.3614, lng: -5.8593 },
+  'donostia':     { lat: 43.3128, lng: -1.9754 },
+  'san sebastián':{ lat: 43.3128, lng: -1.9754 },
+  'logroño':      { lat: 42.4628, lng: -2.4449 },
+  'badajoz':      { lat: 38.8794, lng: -6.9706 },
+  'huelva':       { lat: 37.2614, lng: -6.9447 },
+  'burgos':       { lat: 42.3440, lng: -3.6969 },
+  'salamanca':    { lat: 40.9701, lng: -5.6635 },
+  'albacete':     { lat: 38.9942, lng: -1.8564 },
+  'girona':       { lat: 41.9794, lng: 2.8214  },
+  'lleida':       { lat: 41.6176, lng: 0.6200  },
+  'tarragona':    { lat: 41.1189, lng: 1.2445  },
+  'sabadell':     { lat: 41.5433, lng: 2.1094  },
+  'terrassa':     { lat: 41.5632, lng: 2.0089  },
+  'hospitalet de llobregat': { lat: 41.3599, lng: 2.0994 },
+  'badalona':     { lat: 41.4499, lng: 2.2474  },
+  'sant feliu de llobregat': { lat: 41.3803, lng: 2.0447 },
+  'sant boi de llobregat': { lat: 41.3427, lng: 2.0353 },
+  'granollers':   { lat: 41.6083, lng: 2.2872  },
+  'mataró':       { lat: 41.5394, lng: 2.4462  },
+  'getafe':       { lat: 40.3089, lng: -3.7325 },
+  'alcalá de henares': { lat: 40.4818, lng: -3.3636 },
+  'leganés':      { lat: 40.3289, lng: -3.7641 },
+  'móstoles':     { lat: 40.3227, lng: -3.8644 },
+  'fuenlabrada':  { lat: 40.2842, lng: -3.7950 },
+  'torrejón de ardoz': { lat: 40.4594, lng: -3.4791 },
+  'alcorcón':     { lat: 40.3489, lng: -3.8246 },
+}
+
+function cityCoordFallback(city: string | null, province: string | null): { lat: number; lng: number } | null {
+  const search = [city, province].filter(Boolean).map(s => s!.toLowerCase().trim())
+  for (const key of search) {
+    if (CITY_COORDS[key]) return CITY_COORDS[key]
+    // coincidencia parcial
+    const match = Object.keys(CITY_COORDS).find(k => key.includes(k) || k.includes(key))
+    if (match) return CITY_COORDS[match]
+  }
+  return null
+}
+
 async function geocodeCity(district: string | null, city: string | null, province: string | null): Promise<{ lat: number; lng: number } | null> {
   const parts = [district, city, province, 'España'].filter(Boolean)
-  if (parts.length < 2) return null
+  if (parts.length < 2) return cityCoordFallback(city, province)
   const q = encodeURIComponent(parts.join(', '))
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=es`,
       { headers: { 'User-Agent': 'inmonest.com/1.0' }, next: { revalidate: 86400 } }
     )
-    if (!res.ok) return null
+    if (!res.ok) return cityCoordFallback(city, province)
     const data = await res.json() as Array<{ lat: string; lon: string }>
-    if (!data[0]) return null
+    if (!data[0]) return cityCoordFallback(city, province)
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
   } catch {
-    return null
+    return cityCoordFallback(city, province)
   }
 }
 
@@ -63,6 +127,12 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
 
   if (!listing) notFound()
 
+  // Decode HTML entities in all text fields from scrapers
+  const title    = decodeHtml(listing.title)
+  const city     = decodeHtml(listing.city)
+  const district = decodeHtml(listing.district)
+  const province = decodeHtml(listing.province)
+
   // Verificar si el usuario está autenticado
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -70,6 +140,14 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
   const isTurboActive = listing.turbo_until
     ? new Date(listing.turbo_until) > new Date()
     : false
+
+  // Pisos similares para el carrusel (misma ciudad, operación, precio ±20%)
+  const similarListings = await getSimilarListings(
+    listing.id,
+    listing.city,
+    listing.operation,
+    listing.price_eur,
+  )
 
   const images = listing.listing_images ?? []
 
@@ -125,12 +203,12 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
           {listing.city && (
             <>
               <Link href={`/pisos?ciudad=${listing.city.toLowerCase()}`} className="hover:text-gray-600">
-                {listing.city}
+                {city}
               </Link>
               <span>/</span>
             </>
           )}
-          <span className="text-gray-700 font-medium line-clamp-1">{listing.title}</span>
+          <span className="text-gray-700 font-medium line-clamp-1">{title}</span>
         </nav>
 
         <div className="flex gap-10 items-start">
@@ -162,9 +240,9 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   {Math.round(listing.price_eur / listing.area_m2).toLocaleString('es-ES')} €/m²
                 </p>
               )}
-              <h1 className="mt-3 text-xl font-semibold text-gray-800 leading-snug">{listing.title}</h1>
+              <h1 className="mt-3 text-xl font-semibold text-gray-800 leading-snug">{title}</h1>
               <p className="mt-1 text-sm text-gray-500">
-                📍 {[listing.district, listing.city, listing.province].filter(Boolean).join(', ')}
+                📍 {[district, city, province].filter(Boolean).join(', ')}
               </p>
 
               {/* Stats rápidas inline */}
@@ -201,7 +279,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
             {listing.description && (
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Descripción</h2>
-                <DescriptionExpand text={listing.description} />
+                <DescriptionExpand text={decodeHtml(listing.description)} />
               </div>
             )}
 
@@ -278,7 +356,7 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                 {listing.province && (
                   <div>
                     <dt className="text-xs text-gray-400 uppercase tracking-wider mb-1">Provincia</dt>
-                    <dd className="font-semibold text-gray-900 text-base">{listing.province}</dd>
+                    <dd className="font-semibold text-gray-900 text-base">{province}</dd>
                   </div>
                 )}
                 {listing.postal_code && (
@@ -288,6 +366,16 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   </div>
                 )}
               </dl>
+
+              {/* Fecha de publicación */}
+              {(listing.published_at || listing.created_at) && (
+                <p className="mt-6 text-xs text-gray-400">
+                  Publicado el{' '}
+                  {new Date(listing.published_at ?? listing.created_at).toLocaleDateString('es-ES', {
+                    day: 'numeric', month: 'long', year: 'numeric',
+                  })}
+                </p>
+              )}
 
               {/* Tags de extras */}
               {listing.features && Object.keys(listing.features).some(k =>
@@ -324,14 +412,14 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
                   <MapWrapper
                     lat={mapLat}
                     lng={mapLng}
-                    title={listing.title}
+                  title={title}
                     price={formatPrice(listing.price_eur, listing.operation)}
                     zoom={mapZoom}
                     circleRadius={mapCircleRadius}
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-3">
-                  📍 {[listing.district, listing.city, listing.province].filter(Boolean).join(', ')}
+                  📍 {[district, city, province].filter(Boolean).join(', ')}
                 </p>
               </div>
             )}
@@ -453,6 +541,13 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
             </div>
           </div>
         </div>
+
+        {/* ── Carrusel de pisos similares ── */}
+        {similarListings.length > 0 && (
+          <div className="mt-10">
+            <SimilarListingsCarousel listings={similarListings} />
+          </div>
+        )}
 
       </div>
     </div>

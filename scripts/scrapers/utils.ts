@@ -34,7 +34,7 @@ export interface ScrapedListing {
   features?: Record<string, string>  // campos extra: planta, antiguedad, tipo_casa, etc.
   video_url?: string         // URL de vídeo del inmueble (YouTube embed, etc.)
   virtual_tour_url?: string  // URL de tour virtual (Matterport, etc.)
-  upload_to_storage?: boolean  // si true, descarga las imágenes y las sube a Supabase Storage
+  // upload_to_storage eliminado: política global = external_url → img-proxy → caché Vercel Edge
 }
 
 /**
@@ -143,6 +143,46 @@ const AGENCY_PORTALS = new Set([
   // fotocasa: NO incluir aquí — fotocasa_particulares.ts lo usa con commercial=0
   // y tiene su propia lógica de verificación de anunciante
 ])
+
+// ── Blacklist de contenido basura / productos no permitidos en Inmonest ───────
+// Productos financiero-legales que no son inmobiliaria residencial estándar.
+// Si aparecen en el título o descripción → el anuncio se descarta completamente.
+const CONTENT_BLACKLIST: RegExp[] = [
+  /\bhipoteca\b/i,
+  /\bdeuda\b/i,
+  /\bnuda\s+propiedad\b/i,
+  /\bindiviso\b/i,
+  /\bembargo\b/i,
+  /\bsubasta\b/i,
+  /\brenta\s+antigua\b/i,
+  /\bherencia\b/i,
+  /\bproindiviso\b/i,
+  /\buso\s+fructo\b/i,
+  /\busufructo\b/i,
+]
+
+/**
+ * Devuelve true si el anuncio contiene palabras de la blacklist de contenido.
+ * Usado para descartar productos financieros/legales que dañan el SEO.
+ */
+export function isBlacklistedContent(title: string, description?: string): boolean {
+  const text = `${title} ${description ?? ''}`.toLowerCase()
+  return CONTENT_BLACKLIST.some(re => re.test(text))
+}
+
+// ── Filtro de precios irreales ─────────────────────────────────────────────────
+const MIN_SALE_PRICE  = 30_000   // € — menos de esto es error o gancho falso
+const MIN_RENT_PRICE  = 200      // €/mes — menos de esto no es alquiler de vivienda real
+
+/**
+ * Devuelve true si el precio es inválido para la operación dada.
+ */
+export function isUnrealisticPrice(price: number | undefined, operation: 'sale' | 'rent'): boolean {
+  if (!price) return false  // sin precio → no filtrar (puede ser "consultar")
+  if (operation === 'sale'  && price < MIN_SALE_PRICE)  return true
+  if (operation === 'rent'  && price < MIN_RENT_PRICE)  return true
+  return false
+}
 
 // ── Blacklist de palabras que revelan anunciante de agencia ───────────────────
 // Se chequean contra título + descripción (lowercased). Si hay match → is_particular=false.
@@ -335,6 +375,18 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
     process.exit(1)
   }
 
+  // ── Filtro de contenido basura (blacklist) ────────────────────────────────
+  if (isBlacklistedContent(listing.title, listing.description)) {
+    console.log(`  🚫 [BLACKLIST] Descartado: "${listing.title.slice(0, 70)}"`)
+    return false
+  }
+
+  // ── Filtro de precios irreales ─────────────────────────────────────────────
+  if (isUnrealisticPrice(listing.price_eur, listing.operation)) {
+    console.log(`  🚫 [PRECIO IRREAL] ${listing.operation === 'sale' ? 'Venta' : 'Alquiler'} a ${listing.price_eur}€ — Descartado: "${listing.title.slice(0, 60)}"`)
+    return false
+  }
+
   const baseHeaders = {
     apikey: SUPABASE_SERVICE_KEY,
     Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
@@ -512,16 +564,7 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
   }
 
   if (listingId && listing.images?.length) {
-    await insertImages(listingId, listing.images, baseHeaders,
-      listing.upload_to_storage
-        ? {
-            uploadToStorage: true,
-            portal: listing.source_portal,
-            externalId: listing.source_external_id,
-            referer: `https://www.${listing.source_portal}.com/`,
-          }
-        : undefined,
-    )
+    await insertImages(listingId, listing.images, baseHeaders)
   }
 
   return true
@@ -551,7 +594,8 @@ export async function uploadImageToStorage(
     const imgRes = await fetch(externalUrl, {
       headers: {
         'User-Agent': STORAGE_UA,
-        Accept: 'image/webp,image/avif,image/*,*/*;q=0.8',
+        // No pedir AVIF: Supabase Storage no lo soporta → forzar JPEG/WebP
+        Accept: 'image/webp,image/jpeg,image/png,image/*;q=0.8',
         ...(referer ? { Referer: referer } : {}),
       },
       signal: AbortSignal.timeout(20000),
@@ -559,7 +603,8 @@ export async function uploadImageToStorage(
     if (!imgRes.ok) return null
 
     const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg'
-    if (!contentType.startsWith('image/')) return null
+    // Rechazar AVIF explícitamente — Supabase Storage devuelve 415
+    if (!contentType.startsWith('image/') || contentType.includes('avif')) return null
 
     const buffer = await imgRes.arrayBuffer()
     if (buffer.byteLength < 1024) return null  // demasiado pequeño → página de error
@@ -589,44 +634,23 @@ export async function uploadImageToStorage(
   }
 }
 
-interface InsertImagesOptions {
-  uploadToStorage?: boolean
-  portal?: string
-  externalId?: string
-  referer?: string
-}
-
+// Política global de imágenes:
+// NUNCA subir a Supabase Storage (genera egress caro).
+// Siempre guardar external_url → servidas via /api/img-proxy → cacheadas en
+// Vercel Edge CDN 7 días (s-maxage=604800). La primera visita paga 1 fetch;
+// todas las demás las sirve Vercel gratis desde su red perimetral.
 async function insertImages(
   listingId: string,
   images: string[],
   headers: Record<string, string>,
-  options?: InsertImagesOptions,
 ) {
   const capped = images.slice(0, 15)
-  let finalUrls: string[]
+  if (capped.length === 0) return
 
-  if (options?.uploadToStorage && options.portal && options.externalId) {
-    // Descargar cada imagen y subirla a Supabase Storage
-    finalUrls = []
-    for (let i = 0; i < capped.length; i++) {
-      const ext = capped[i].match(/\.(jpg|jpeg|png|webp)/i)?.[1]?.toLowerCase() ?? 'jpg'
-      const safeid = options.externalId.replace(/[^a-z0-9_-]/gi, '_')
-      const path = `scraper/${options.portal}/${safeid}/${i}.${ext}`
-      const stored = await uploadImageToStorage(capped[i], path, options.referer)
-      if (stored) {
-        finalUrls.push(stored)
-      }
-      // Si la subida falla, no incluir la URL externa (sería bloqueada por hotlinking)
-    }
-  } else {
-    finalUrls = capped
-  }
-
-  if (finalUrls.length === 0) return
-
-  const rows = finalUrls.map((url, i) => ({
+  const rows = capped.map((url, i) => ({
     listing_id: listingId,
     external_url: url,
+    storage_path: null,
     position: i,
   }))
 

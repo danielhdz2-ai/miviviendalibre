@@ -67,41 +67,78 @@ export default function ListingGallery({ images, title, lat, lng, priceLabel }: 
   return (
     <>
       <div className="w-full">
-        {images.length === 1 ? (
-          <div className="relative w-full aspect-[16/7] overflow-hidden cursor-zoom-in bg-gray-100" onClick={() => openAt(0)}>
+        {/* ── Móvil: carrusel simple ──────────────────────────────────── */}
+        <div className="md:hidden">
+          <div className="relative w-full aspect-[4/3] overflow-hidden cursor-zoom-in bg-gray-100 group" onClick={() => openAt(current)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={getUrl(images[0])} alt={title} className="w-full h-full object-cover" />
-            <div className="absolute bottom-4 right-4">
-              <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full font-medium">Ver foto</span>
+            <img src={getUrl(images[current])} alt={title} className="w-full h-full object-cover" />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={e => { e.stopPropagation(); prev() }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full w-9 h-9 flex items-center justify-center"
+                  aria-label="Anterior"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); next() }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full w-9 h-9 flex items-center justify-center"
+                  aria-label="Siguiente"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                  {images.slice(0, Math.min(images.length, 8)).map((_, i) => (
+                    <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === current ? 'bg-white scale-125' : 'bg-white/50'}`} />
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+              {current + 1}/{images.length}
             </div>
           </div>
-        ) : (
-          <div className="grid gap-1" style={{ gridTemplateColumns: '3fr 2fr', height: '480px' }}>
-            <div className="relative overflow-hidden cursor-zoom-in bg-gray-100 group" onClick={() => openAt(0)}>
+        </div>
+
+        {/* ── Desktop: grid principal + miniaturas ────────────────────── */}
+        <div className="hidden md:block">
+          {images.length === 1 ? (
+            <div className="relative w-full aspect-[16/7] overflow-hidden cursor-zoom-in bg-gray-100" onClick={() => openAt(0)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={getUrl(images[0])} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+              <img src={getUrl(images[0])} alt={title} className="w-full h-full object-cover" />
+              <div className="absolute bottom-4 right-4">
+                <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full font-medium">Ver foto</span>
+              </div>
             </div>
-            <div className="grid grid-rows-2 grid-cols-2 gap-1">
-              {thumb.map((img, i) => {
-                const isLast = i === 3 && images.length > 5
-                return (
-                  <div key={img.id} className="relative overflow-hidden cursor-zoom-in bg-gray-100 group" onClick={() => openAt(i + 1)}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getUrl(img)} alt={`Foto ${i + 2}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                    {isLast && (
-                      <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">+{remaining + 1} fotos</span>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-              {Array.from({ length: Math.max(0, 4 - thumb.length) }).map((_, i) => (
-                <div key={`empty-${i}`} className="bg-gray-100" />
-              ))}
+          ) : (
+            <div className="grid gap-1" style={{ gridTemplateColumns: '3fr 2fr', aspectRatio: '16/7' }}>
+              <div className="relative overflow-hidden cursor-zoom-in bg-gray-100 group" onClick={() => openAt(0)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={getUrl(images[0])} alt={title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+              </div>
+              <div className="grid grid-rows-2 grid-cols-2 gap-1">
+                {thumb.map((img, i) => {
+                  const isLast = i === 3 && images.length > 5
+                  return (
+                    <div key={img.id} className="relative overflow-hidden cursor-zoom-in bg-gray-100 group" onClick={() => openAt(i + 1)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={getUrl(img)} alt={`Foto ${i + 2}`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                      {isLast && (
+                        <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">+{remaining + 1} fotos</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {Array.from({ length: Math.max(0, 4 - thumb.length) }).map((_, i) => (
+                  <div key={`empty-${i}`} className="bg-gray-100" />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         {images.length > 1 && (
           <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
             <span className="text-sm text-gray-500">{images.length} fotos</span>

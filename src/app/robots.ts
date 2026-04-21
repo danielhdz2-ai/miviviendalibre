@@ -9,14 +9,30 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         disallow: [
+          // API routes
           '/api/',
-          '/dashboard/',
+          // Auth & private flows
+          '/mi-cuenta/',
+          '/mis-documentos',
+          '/login',
+          '/registro',
+          '/auth/',
+          // Admin
           '/admin/',
-          '/mi-cuenta/editar',
+          // Post-payment confirmation pages (no SEO value, require session)
+          '/gestoria/gracias',
+          '/gestoria/error',
+          '/gestoria/carga-documentos',
+          // Turbo post-payment pages (noindex handled via metadata in each page)
+          // Note: NOT disallowed here so Google can read the noindex meta tag
+          // Wizard / multi-step forms
+          '/publicar',
+          '/publicar/',
+          // Debug
+          '/debug/',
         ],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
   }
 }

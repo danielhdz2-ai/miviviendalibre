@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { Suspense } from 'react'
 import Navbar from '@/components/NavbarServer'
 import SearchForm from '@/components/SearchForm'
 import BentoVentajas from '@/components/BentoVentajas'
@@ -49,7 +50,9 @@ export default function Home() {
 
           {/* Tarjeta de búsqueda flotante */}
           <div className="bg-white/96 backdrop-blur-md rounded-2xl shadow-2xl shadow-black/30 border border-[#e8b52a]/20 p-4 sm:p-5 max-w-3xl">
-            <SearchForm />
+            <Suspense fallback={<div className="h-24 animate-pulse bg-gray-100 rounded-xl" />}>
+              <SearchForm />
+            </Suspense>
           </div>
         </div>
       </section>

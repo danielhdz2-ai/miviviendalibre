@@ -48,40 +48,94 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-// fetchHtml usa Playwright para evitar el bloqueo Imperva de Habitaclia
+// Imperva requiere headless:false (TLS fingerprint distinto al de Chrome headless).
+// Estrategia: warm-then-navigate — visitamos la home en la misma página y navegamos
+// directamente al listado (Referer natural). Las páginas de detalle abren en nuevas
+// pestañas del mismo contexto (cookies compartidas).
 let _browser: import('playwright').Browser | null = null
+let _context: import('playwright').BrowserContext | null = null
 
-async function getBrowser() {
-  if (!_browser) {
-    _browser = await chromium.launch({ headless: true })
-  }
-  return _browser
+async function getContext(): Promise<import('playwright').BrowserContext> {
+  if (_context) return _context
+  _browser = await chromium.launch({ headless: false })
+  _context = await _browser.newContext({
+    userAgent: UA,
+    locale: 'es-ES',
+    viewport: { width: 1366, height: 768 },
+    extraHTTPHeaders: {
+      'Accept-Language': 'es-ES,es;q=0.9,ca;q=0.8',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    },
+  })
+  return _context
 }
 
+/**
+ * Fetch de la página de LISTADO:
+ * - Primera vez: visita home, después navega al listado en la MISMA página (Referer natural).
+ * - Páginas 2+: nueva pestaña en el contexto existente (cookies de sesión ya establecidas).
+ */
+async function fetchListingPage(url: string, isFirstPage: boolean): Promise<string | null> {
+  try {
+    const ctx = await getContext()
+    const page = await ctx.newPage()
+    try {
+      if (isFirstPage) {
+        console.log('  🔑 Pre-warm: visitando home...')
+        await page.goto('https://www.habitaclia.com/', { waitUntil: 'domcontentloaded', timeout: 25000 })
+        await page.mouse.move(400, 300, { steps: 15 })
+        await page.waitForTimeout(800)
+        await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'smooth' }))
+        await page.waitForTimeout(4000)
+        console.log('  ✅ Pre-warm OK, cargando listado...')
+      }
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+      await page.waitForTimeout(2000)
+      const html = await page.content()
+      if (html.includes('Pardon Our Interruption') || html.includes('Request ID:')) {
+        console.warn(`  ⚠️ Imperva block en ${url}`)
+        return null
+      }
+      return html
+    } finally {
+      await page.close().catch(() => {})
+    }
+  } catch (err) {
+    console.warn(`  ⚠️ Fetch error (listing): ${err}`)
+    return null
+  }
+}
+
+/** Fetch de página de DETALLE: nueva pestaña en contexto existente (cookies compartidas). */
 async function fetchHtml(url: string, referer = 'https://www.habitaclia.com/'): Promise<string | null> {
   try {
-    const browser = await getBrowser()
-    const context = await browser.newContext({
-      userAgent: UA,
-      extraHTTPHeaders: {
-        'Accept-Language': 'es-ES,es;q=0.9,ca;q=0.8',
-        Referer: referer,
-      },
-    })
-    const page = await context.newPage()
-    const res  = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
-    if (!res || !res.ok()) {
-      console.warn(`  ⚠️ HTTP ${res?.status()} para ${url}`)
-      await context.close()
-      return null
+    const ctx = await getContext()
+    const page = await ctx.newPage()
+    await page.setExtraHTTPHeaders({ Referer: referer })
+    try {
+      const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 })
+      if (!res || !res.ok()) {
+        console.warn(`  ⚠️ HTTP ${res?.status()} para ${url}`)
+        return null
+      }
+      const html = await page.content()
+      if (html.includes('Pardon Our Interruption') || html.includes('Request ID:')) {
+        console.warn(`  ⚠️ Imperva block en ${url}`)
+        return null
+      }
+      return html
+    } finally {
+      await page.close().catch(() => {})
     }
-    const html = await page.content()
-    await context.close()
-    return html
   } catch (err) {
     console.warn(`  ⚠️ Fetch error: ${err}`)
     return null
   }
+}
+
+async function closeSession() {
+  await _context?.close().catch(() => {})
+  await _browser?.close().catch(() => {})
 }
 
 // ─── Construcción de URL de búsqueda ─────────────────────────────────────────
@@ -100,56 +154,88 @@ function buildSearchUrl(operation: 'venta' | 'alquiler', citySlug: string, page:
   return page === 1 ? base : `${base}?i=${page - 1}`
 }
 
-// ─── Extracción de links de detalle desde el listado ─────────────────────────
+// ─── Extracción de datos del listado ─────────────────────────────────────────
+//
+// Habitaclia embebe toda la info necesaria en cada <article>:
+//   - data-href       → URL limpia del anuncio
+//   - data-esparticular="PRIVATE" → clasificación particular
+//   - data-image="//images.habimg.com/...G.jpg" → todas las fotos del carrusel
+//   - itemprop="price">\d+ € → precio en formato europeo
 
 interface HabitacliaItem {
-  url: string
-  title: string
-  price: number | null
+  url:          string
+  title:        string
+  price:        number | null
+  isParticular: boolean
+  images:       string[]
 }
 
-function extractListingLinks(html: string): HabitacliaItem[] {
+/** Extrae precio en formato europeo ("925.000 €" → 925000, "300.000€" → 300000) */
+function parseEuropeanPrice(text: string): number | null {
+  // Busca patrón: 1-4 dígitos + (punto + 3 dígitos)* + espacio opcional + €
+  const m = text.match(/(\d{1,4}(?:\.\d{3})*)\s*€/)
+  if (!m) {
+    // fallback: dígitos sin punto separador
+    const m2 = text.match(/(\d{4,9})\s*€/)
+    return m2 ? parseInt(m2[1], 10) : null
+  }
+  return parseInt(m[1].replace(/\./g, ''), 10)
+}
+
+function extractListingItems(html: string): HabitacliaItem[] {
   const items: HabitacliaItem[] = []
   const seen = new Set<string>()
 
-  // Habitaclia inyecta JSON-LD (Product/RealEstateListing) o anota las URL en data-href
-  // Estrategia 1: JSON-LD
-  const jsonRe = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi
-  let m: RegExpExecArray | null
-  while ((m = jsonRe.exec(html))) {
-    try {
-      const raw = m[1].trim()
-      const obj = JSON.parse(raw)
-      const entries = Array.isArray(obj) ? obj : [obj]
-      for (const d of entries) {
-        const url = d.url ?? d['@id'] ?? ''
-        if (!url || seen.has(url)) continue
-        const fullUrl = url.startsWith('http') ? url : `https://www.habitaclia.com${url}`
-        seen.add(url)
-        const price =
-          typeof d.offers?.price === 'number'
-            ? d.offers.price
-            : typeof d.price === 'number'
-              ? d.price
-              : null
-        items.push({ url: fullUrl, title: d.name ?? '', price })
-      }
-    } catch {
-      // ignore
-    }
+  // Cada anuncio está en <article id="id{8+digitos}" data-href="..." data-esparticular="...">
+  const articleStartRe = /<article\b[^>]+\bid="id(\d{8,})"[^>]*>/gi
+  let artM: RegExpExecArray | null
+  const starts: Array<{ idx: number; attrs: string }> = []
+
+  while ((artM = articleStartRe.exec(html)) !== null) {
+    starts.push({ idx: artM.index, attrs: artM[0] })
   }
 
-  if (items.length > 0) return items
+  for (let i = 0; i < starts.length; i++) {
+    const { idx, attrs } = starts[i]
+    const end = i + 1 < starts.length ? starts[i + 1].idx : idx + 8000
+    const artHtml = html.substring(idx, Math.min(end, idx + 8000))
 
-  // Estrategia 2: href con patrón ID de Habitaclia (-i\d{8,}.htm)
-  // Habitaclia sirve URLs **relativas**: href="/comprar-piso-...-madrid-i500004521959.htm"
-  const linkRe = /href="((?:https?:\/\/www\.habitaclia\.com)?\/(?:comprar|alquiler)-[^"?#\s]*-i\d{8,}\.htm)"/gi
-  while ((m = linkRe.exec(html))) {
-    const raw = m[1]
-    const url = raw.startsWith('http') ? raw : `https://www.habitaclia.com${raw.startsWith('/') ? raw : `/${raw}`}`
+    // URL: data-href (con parámetros de filtro; usamos URL limpia)
+    const hrefM = attrs.match(/data-href="([^"]+)"/)
+    if (!hrefM) continue
+    const rawUrl = hrefM[1].replace(/&amp;/g, '&')
+    const url = rawUrl.split('?')[0]
     if (seen.has(url)) continue
     seen.add(url)
-    items.push({ url, title: '', price: null })
+
+    // ¿Es particular?
+    const isParticular = /data-esparticular="PRIVATE"/i.test(attrs)
+
+    // Imágenes: data-image attrs del carrusel (lazy-loaded)
+    const images: string[] = []
+    const imgRe = /data-image="(\/\/images\.habimg\.com\/[^"]+)"/gi
+    let imgM: RegExpExecArray | null
+    while ((imgM = imgRe.exec(artHtml)) !== null) {
+      const url = 'https:' + imgM[1]
+      if (!images.includes(url)) images.push(url)
+    }
+    // Fallback: src= (primera imagen visible en el DOM)
+    const srcRe = /src="(\/\/images\.habimg\.com\/[^"]+)"/gi
+    while ((imgM = srcRe.exec(artHtml)) !== null) {
+      const url = 'https:' + imgM[1]
+      if (!images.includes(url)) images.push(url)
+    }
+
+    // Precio (formato europeo)
+    const price = parseEuropeanPrice(artHtml)
+
+    // Título: itemprop="name" o alt de la primera imagen
+    let title = ''
+    const nameM = artHtml.match(/itemprop="name"[^>]*>\s*([^<]{5,120})\s*</)
+               ?? artHtml.match(/alt="([^"]{10,120})"/)
+    if (nameM) title = nameM[1].trim()
+
+    items.push({ url, title, price, isParticular, images })
   }
 
   return items
@@ -158,11 +244,22 @@ function extractListingLinks(html: string): HabitacliaItem[] {
 // ─── Detectar si es particular según el portal ───────────────────────────────
 
 /**
- * Habitaclia muestra "Anunci de particular" (catalán) o "Anuncio de particular"
- * en la página de detalle. Si el portal dice particular → es particular.
+ * Habitaclia muestra "Anunci de particular" (catalán), "Anuncio de particular",
+ * "Anunciante particular" o simplemente "Particular" como tipo de anunciante.
+ * También acepta si el HTML tiene f=particulares en la URL canónica.
  */
 function isParticularListing(html: string): boolean {
-  return /anunci(?:o)?\s+de\s+particular|anunciante\s+particular/i.test(html)
+  return (
+    /data-esparticular="PRIVATE"/i.test(html) ||          // listing article attr
+    /<span[^>]*class="[^"]*title[^"]*"[^>]*>\s*Particular\s*<\/span>/i.test(html) || // detail page
+    /Contactar\s+Particular/i.test(html) ||               // contact form label
+    /data-gtmbrand="[^"]*Particular[^"]*"/i.test(html) || // analytics attribute
+    /anunci(?:o)?\s+de\s+particular/i.test(html) ||
+    /anunciante[:\s]+particular/i.test(html) ||
+    /tipus\s+d['']anunciant[^<]{0,40}particular/i.test(html) ||
+    /tipo\s+de\s+anunciante[^<]{0,40}particular/i.test(html) ||
+    /f=particulares/.test(html)
+  )
 }
 
 // ─── Extracción de datos de detalle ──────────────────────────────────────────
@@ -178,50 +275,91 @@ interface DetailData {
   lat:            number | null
   lng:            number | null
   advertiserName: string | null
+  features:       Record<string, string>
 }
 
-function extractDetailData(html: string, fallbackPrice: number | null): DetailData {
+function extractDetailData(html: string, fallbackPrice: number | null, detailUrl?: string): DetailData {
   // ── Precio ──────────────────────────────────────────────────────────────────
-  let price = fallbackPrice
-  if (!price) {
-    const priceRe = [
-      /"price"\s*:\s*(\d{4,8})/,
-      /itemprop="price"[^>]*content="(\d{4,8})"/,
-      /(\d{4,8})\s*€/,
-    ]
-    for (const pat of priceRe) {
-      const m = html.match(pat)
-      if (m) { price = parseInt(m[1], 10); break }
-    }
+  // Habitaclia detail: itemprop="price">925.000 € (formato europeo)
+  // IMPORTANTE: siempre intentar extraer del detalle; fallbackPrice solo como último recurso.
+  let price: number | null = null
+  // itemprop con texto (sin content=)
+  const ipM = html.match(/itemprop="price">([\d.,\s]+)\s*€/)
+  if (ipM) {
+    price = parseInt(ipM[1].replace(/[\s.]/g, '').replace(/,/g, ''), 10) || null
   }
+  if (!price) {
+    // Buscar en contenedor específico de precio de Habitaclia
+    const priceContM = html.match(/class="[^"]*(?:list-item-price|detail-price|ficha-precio)[^"]*"[^>]*>([\s\S]{0,200}?)(?:<\/|itemprop)/)
+    if (priceContM) price = parseEuropeanPrice(priceContM[1])
+  }
+  if (!price) price = fallbackPrice
 
   // ── Superficie, habitaciones, baños ─────────────────────────────────────────
-  const areaM    = html.match(/(\d{2,4})\s*m[²2]/i)
-  const area     = areaM ? parseInt(areaM[1], 10) : null
-  const bedsM    = html.match(/(\d{1,2})\s*(?:habitacion|dormitori|dormitorio)/i)
+  // Habitaclia HTML: <li>Superficie 161&nbsp;m<sup>2</sup></li>
+  // The sidebar has <option value="50">50 m2</option> before the real stats.
+  // Key insight: real data is tagged with "Superficie NNN" or inside <li> with
+  // the exact HTML entity (&nbsp;) + <sup>2</sup> pattern.
+  let area: number | null = null
+  const areaPatterns: RegExp[] = [
+    // 1. Habitaclia exact: "Superficie NNN&nbsp;m<sup>2</sup>"
+    /[Ss]uperficie\s+(?:construida\s+)?(\d{2,4})(?:&nbsp;|\s+)m<sup>/i,
+    // 2. Habitaclia in <li>: ">NNN&nbsp;m<sup>2</sup><"
+    />(\d{2,4})(?:&nbsp;|\s+)m<sup>2<\/sup></i,
+    // 3. URL slug: "-NNNm2_" or "_NNNm2-" (very reliable, appears in img URLs)
+    /[-_](\d{2,4})m2[-_]/i,
+    // 4. Plain text fallback — only match ≥3 digits to skip sidebar 50/60/70/80…
+    /(\d{3,4})\s*m[²2]/,
+  ]
+  for (const pat of areaPatterns) {
+    const m = html.match(pat)
+    if (m) {
+      const v = parseInt(m[1], 10)
+      if (v >= 18 && v <= 5000) { area = v; break }
+    }
+  }
+  // Habitaclia: <li>5 habitaciones</li> or <li>2 Baños</li>
+  const bedsM    = html.match(/>(\d{1,2})\s*(?:habitacion|dormitori|dormitorio)/i)
+               ?? html.match(/(\d{1,2})\s*(?:habitacion|dormitori|dormitorio)/i)
   const bedrooms = bedsM ? parseInt(bedsM[1], 10) : null
-  const bathM    = html.match(/(\d{1,2})\s*(?:ba[ñn]o|bany)/i)
+  const bathM    = html.match(/>(\d{1,2})\s*(?:ba[ñn]o|bany)/i)
+               ?? html.match(/(\d{1,2})\s*(?:ba[ñn]o|bany)/i)
   const bathrooms = bathM ? parseInt(bathM[1], 10) : null
 
   // ── Descripción ──────────────────────────────────────────────────────────────
+  // Intentar el cuerpo real del texto (itemprop="description") antes del meta truncado.
   let description: string | null = null
-  const descPatterns = [
-    /"description"\s*:\s*"((?:[^"\\]|\\.){80,})"/,
-    /<meta[^>]+name="description"[^>]+content="([^"]{30,})"/i,
-  ]
-  for (const pat of descPatterns) {
-    const m = html.match(pat)
-    if (m && m[1].length > 80) {
-      description = m[1]
-        .replace(/\\n/g, '\n').replace(/\\r/g, '')
-        .replace(/\\u([\da-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
-        .replace(/\\"/g, '"')
-        .replace(/&#x([0-9A-Fa-f]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
-        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-        .replace(/&amp;/g, '&').replace(/&quot;/g, '"')
-        .trim()
-      break
-    }
+
+  function cleanHtmlText(raw: string): string {
+    return raw
+      .replace(/<[^>]+>/g, ' ')  // eliminar tags HTML
+      .replace(/\\n/g, '\n').replace(/\\r/g, '')
+      .replace(/\\u([\da-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\"/g, '"')
+      .replace(/&#x([0-9A-Fa-f]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+      .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  }
+
+  // 1) itemprop="description" en el cuerpo (texto completo, puede tener HTML interno)
+  const itempropDescM = html.match(/itemprop="description"[^>]*>([\s\S]{80,8000}?)<\/(?:p|div|section)\s*>/i)
+  if (itempropDescM) {
+    const cleaned = cleanHtmlText(itempropDescM[1])
+    if (cleaned.length > 80) description = cleaned
+  }
+
+  // 2) JSON-LD description
+  if (!description) {
+    const jsonDescM = html.match(/"description"\s*:\s*"((?:[^"\\]|\\.){80,})"/)
+    if (jsonDescM) description = cleanHtmlText(jsonDescM[1])
+  }
+
+  // 3) meta description (último recurso, ~160 chars)
+  if (!description) {
+    const metaM = html.match(/<meta[^>]+name="description"[^>]+content="([^"]{30,})"/i)
+    if (metaM && metaM[1].length > 80) description = cleanHtmlText(metaM[1])
   }
 
   // ── Código postal ────────────────────────────────────────────────────────────
@@ -238,19 +376,53 @@ function extractDetailData(html: string, fallbackPrice: number | null): DetailDa
   if (lngM) lng = parseFloat(lngM[1])
 
   // ── Imágenes ─────────────────────────────────────────────────────────────────
+  // Habitaclia detail: //images.habimg.com/imgh/{codem}-{id}/{slug}_{uuid}XL.jpg
+  // IMPORTANTE: el final de la página tiene "Anuncios similares" con fotos de otros
+  // inmuebles. Filtramos por el path del inmueble actual usando data-codem/data-codinm.
+  const codemAttr  = html.match(/data-codem="(\d+)"/)?.[1]
+  const codinmAttr = html.match(/data-codinm="(\d+)"/)?.[1]
+  const propertyPath = (codemAttr && codinmAttr) ? `/imgh/${codemAttr}-${codinmAttr}/` : null
+
   const images: string[] = []
-  const seen = new Set<string>()
-  // Habitaclia usa CDN: https://cdn.habitaclia.com/images/{id}/{n}.jpg
-  const imgRe = /https:\/\/(?:cdn|static)\.habitaclia\.com\/(?:images|fotos)\/[^\s"']+\.(?:jpg|jpeg|png|webp)/gi
+  const seenImgs = new Set<string>()
+  const imgRe = /(?:https?:)?\/\/images\.habimg\.com\/imgh\/[^\s"'<>)]+\.(?:jpg|jpeg|png|webp)/gi
   let imgM: RegExpExecArray | null
   while ((imgM = imgRe.exec(html))) {
-    const url = imgM[0].split('?')[0]
-    if (seen.has(url)) continue
-    // Excluir miniaturas (thumbnail, thumb, small)
-    if (/thumb|small|mini|logo|avatar/i.test(url)) continue
-    seen.add(url)
+    const raw = imgM[0].replace(/\);?$/, '') // strip trailing ); from CSS url()
+    const url = raw.startsWith('//') ? 'https:' + raw : raw
+    if (seenImgs.has(url)) continue
+    if (propertyPath && !url.includes(propertyPath)) continue // ignorar fotos de otros inmuebles
+    if (/[Pp]\.(?:jpg|jpeg|png|webp)$/.test(url)) continue  // skip preview (P) size
+    if (/logo|avatar|banner/i.test(url)) continue
+    seenImgs.add(url)
     images.push(url)
-    if (images.length >= 15) break
+    if (images.length >= 20) break
+  }
+
+  // ── Amenidades ───────────────────────────────────────────────────────────────
+  // Habitaclia lists amenities in <li class="feature">TEXTO</li> elements.
+  const features: Record<string, string> = {}
+  const amenityMap: Array<[string, RegExp]> = [
+    ['ascensor',           /ascensor/i],
+    ['terraza',            /terraza/i],
+    ['garaje',             /garaje|parking|plaza\s*de?\s*park/i],
+    ['piscina',            /piscina/i],
+    ['trastero',           /trastero/i],
+    ['jardin',             /jard[ií]n/i],
+    ['aire_acondicionado', /aire\s*acondicionado/i],
+    ['calefaccion',        /calefacci[oó]n/i],
+    ['armarios_empotrados',/armarios?\s*empotrados?/i],
+    ['exterior',           /\bexterior\b/i],
+    ['vigilancia',         /vigilancia|conserjería/i],
+  ]
+  // Extract text from feature elements
+  const featRe = /class="[^"]*\bfeature\b[^"]*"[^>]*>\s*([^<]{3,60}?)\s*</gi
+  const featTexts: string[] = []
+  let featM: RegExpExecArray | null
+  while ((featM = featRe.exec(html))) featTexts.push(featM[1].trim())
+  const featBlob = featTexts.join(' ') + ' ' + html
+  for (const [key, re] of amenityMap) {
+    if (re.test(featBlob)) features[key] = 'true'
   }
 
   // ── Nombre del anunciante ─────────────────────────────────────────────────────
@@ -265,7 +437,7 @@ function extractDetailData(html: string, fallbackPrice: number | null): DetailDa
     if (m) { advertiserName = m[1].trim(); break }
   }
 
-  return { price, area, bedrooms, bathrooms, description, images, postalCode, lat, lng, advertiserName }
+  return { price, area, bedrooms, bathrooms, description, images, postalCode, lat, lng, advertiserName, features }
 }
 
 // ─── Scraper principal ────────────────────────────────────────────────────────
@@ -294,7 +466,7 @@ async function scrapeHabitacliaParticulares(
     const searchUrl = buildSearchUrl(operation, geoInfo.slug, page)
     console.log(`\n  📄 Página ${page}: ${searchUrl}`)
 
-    const listHtml = await fetchHtml(searchUrl)
+    const listHtml = await fetchListingPage(searchUrl, page === 1)
     if (!listHtml) {
       console.warn(`  ⚠️ No se pudo cargar página ${page}, parando`)
       break
@@ -310,64 +482,81 @@ async function scrapeHabitacliaParticulares(
       break
     }
 
-    const items = extractListingLinks(listHtml)
+    const items = extractListingItems(listHtml)
     if (items.length === 0) {
       console.log(`  ⚠️ Sin anuncios en página ${page}, parando`)
       break
     }
 
-    console.log(`  → ${items.length} anuncios encontrados`)
+    const particulars = items.filter(i => i.isParticular)
+    const agencies    = items.filter(i => !i.isParticular)
+    console.log(`  → ${items.length} anuncios (${particulars.length} particulares, ${agencies.length} agencias)`)
 
     for (const item of items) {
-      await sleep(DELAY_MS)
-
-      const detailHtml = await fetchHtml(item.url, searchUrl)
-      if (!detailHtml) { skipped++; continue }
-
-      const confirmedParticular = isParticularListing(detailHtml)
-      if (!confirmedParticular) {
-        console.log(`    🏢 [AGENCIA] guardando con is_particular=false: ${item.url.split('/').slice(-1)[0]}`)
+      // Saltar agencias directamente desde el listado
+      if (!item.isParticular) {
+        console.log(`    🏢 [AGENCIA] saltando: ${item.url.split('/').pop()}`)
+        continue
       }
 
-      const detail = extractDetailData(detailHtml, item.price)
-      if (!detail.price || detail.images.length === 0) {
+      // Datos primarios del listado (precio + imágenes ya disponibles)
+      let price  = item.price
+      let images = [...item.images]
+      let detail: Awaited<ReturnType<typeof extractDetailData>> | null = null
+
+      // Enriquecimiento opcional con página de detalle
+      await sleep(DELAY_MS)
+      const detailHtml = await fetchHtml(item.url, searchUrl)
+      if (detailHtml) {
+        detail = extractDetailData(detailHtml, price, item.url)
+        if (detail.price)              price  = detail.price
+        if (detail.images.length > 0)  images = detail.images
+      }
+
+      // Si no tenemos precio ni fotos (ni de listing ni de detalle) → descartar
+      if (!price || images.length === 0) {
         console.log(`    ⚠️ [DESCARTADO sin precio/fotos] ${item.url}`)
         skipped++
         continue
       }
 
-      // Título: usar el del JSON-LD o construir uno
-      const title =
-        item.title.trim() ||
-        [
-          detail.bedrooms ? `${detail.bedrooms} hab.` : '',
-          detail.area     ? `${detail.area} m²`       : '',
-        ].filter(Boolean).join(' · ') +
-        ` – ${operation === 'venta' ? 'Venta' : 'Alquiler'} en ${geoInfo.city}`
+      const confirmedParticular = detailHtml ? isParticularListing(detailHtml) : true
+
+      // Título desde el listing o desde la página de detalle (h1)
+      let title = item.title.trim()
+      if (!title && detailHtml) {
+        const h1M = detailHtml.match(/<h1[^>]*>([^<]{5,120})<\/h1>/i)
+        if (h1M) title = h1M[1].trim()
+      }
+      if (!title) {
+        title = [
+          detail?.bedrooms ? `${detail.bedrooms} hab.` : '',
+          detail?.area     ? `${detail.area} m²`       : '',
+        ].filter(Boolean).join(' · ') + ` – ${operation === 'venta' ? 'Venta' : 'Alquiler'} en ${geoInfo.city}`
+      }
 
       const externalId = `hab_${item.url.replace(/https?:\/\/[^/]+/,'').replace(/[^a-zA-Z0-9]/g,'_').slice(-60)}`
 
       const listing: ScrapedListing = {
         title:               title || `Piso en ${operation} – ${geoInfo.city}`,
-        description:         detail.description ?? undefined,
-        price_eur:           detail.price,
+        description:         detail?.description ?? undefined,          features:            detail?.features && Object.keys(detail.features).length > 0 ? detail.features : undefined,        price_eur:           price,
         operation:           opLabel as 'sale' | 'rent',
         province:            geoInfo.province,
         city:                geoInfo.city,
-        postal_code:         detail.postalCode ?? undefined,
-        bedrooms:            detail.bedrooms   ?? undefined,
-        bathrooms:           detail.bathrooms  ?? undefined,
-        area_m2:             detail.area       ?? undefined,
-        lat:                 detail.lat        ?? undefined,
-        lng:                 detail.lng        ?? undefined,
+        postal_code:         detail?.postalCode ?? undefined,
+        bedrooms:            detail?.bedrooms   ?? undefined,
+        bathrooms:           detail?.bathrooms  ?? undefined,
+        area_m2:             detail?.area       ?? undefined,
+        lat:                 detail?.lat        ?? undefined,
+        lng:                 detail?.lng        ?? undefined,
         source_portal:       'habitaclia.com',
         source_url:          item.url,
         source_external_id:  externalId,
         is_particular:       confirmedParticular,
-        images:              detail.images,
+        images:              images,
         external_link:       item.url,
-        phone:               extractPhone(detailHtml) ?? undefined,
-        advertiser_name:     detail.advertiserName ?? undefined,
+        phone:               detailHtml ? (extractPhone(detailHtml) ?? undefined) : undefined,
+        advertiser_name:     detail?.advertiserName ?? undefined,
       }
 
       const ok = await upsertListing(listing)
@@ -375,12 +564,12 @@ async function scrapeHabitacliaParticulares(
         if (confirmedParticular) {
           imported++
           console.log(
-            `    ✅ [${imported}] 🏠 PARTICULAR: ${title.slice(0, 50)} | ${detail.price.toLocaleString('es-ES')}€ | ${detail.area ?? '?'}m²`,
+            `    ✅ [${imported}] 🏠 PARTICULAR: ${title.slice(0, 50)} | ${price.toLocaleString('es-ES')}€ | ${detail?.area ?? '?'}m²`,
           )
         } else {
           rejected++
           console.log(
-            `    🏢 [AGENCIA] guardada: ${title.slice(0, 50)} | ${detail.price.toLocaleString('es-ES')}€`,
+            `    🏢 [AGENCIA] guardada: ${title.slice(0, 50)} | ${price.toLocaleString('es-ES')}€`,
           )
         }
       } else {
@@ -413,7 +602,7 @@ async function main(): Promise<void> {
   try {
     await scrapeHabitacliaParticulares(operation, city, maxPages)
   } finally {
-    if (_browser) await _browser.close()
+    await closeSession()
   }
 }
 

@@ -336,6 +336,37 @@ export async function scrapeMilanuncios(
 
       const detail = extractDetailData(detailHtml, item.url)
 
+      // Filtrar logos de portales (misma técnica que Wallapop: JPEG SOF0)
+      // Logos cuadrados (ratio 0.85–1.15, lado>250px) o muy verticales (ratio<0.5) → descartados
+      const filteredImgs: string[] = []
+      for (const imgUrl of detail.images.slice(0, 20)) {
+        try {
+          const res = await fetch(imgUrl, {
+            headers: { Range: 'bytes=0-4096', Referer: 'https://www.milanuncios.com/', 'User-Agent': UA },
+            signal: AbortSignal.timeout(5000),
+          })
+          const buf = Buffer.from(await res.arrayBuffer())
+          let isLogoLike = false
+          for (let i = 0; i < buf.length - 8; i++) {
+            if (buf[i] === 0xFF && (buf[i + 1] === 0xC0 || buf[i + 1] === 0xC2)) {
+              const h = buf.readUInt16BE(i + 5)
+              const w = buf.readUInt16BE(i + 7)
+              if (h > 0 && w > 0) {
+                const ratio = w / h
+                if (ratio >= 0.85 && ratio <= 1.15 && Math.min(w, h) > 250) isLogoLike = true
+                if (ratio < 0.5) isLogoLike = true
+              }
+              break
+            }
+          }
+          if (!isLogoLike) filteredImgs.push(imgUrl)
+          else console.log(`    🚫 Imagen descartada (logo/cuadrada): ${imgUrl.split('/').pop()}`)
+        } catch {
+          filteredImgs.push(imgUrl) // si falla la verificación, incluir de todos modos
+        }
+      }
+      detail.images = filteredImgs
+
       // Filtrar anuncios de demanda (compradores buscando inmueble)
       if (isDemandListing(item.title, detail.description)) {
         rejected++

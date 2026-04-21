@@ -118,9 +118,11 @@ export default function DashboardSidebar({
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Inmonest" width={32} height={32} className="rounded-lg" />
-          <span className="font-bold text-gray-900 text-lg">Inmonest</span>
+        <Link href="/" className="flex items-center gap-0">
+          <Image src="/logo.png" alt="Inmonest" width={36} height={36} className="object-contain" />
+          <span className="text-lg font-extrabold tracking-tight leading-none">
+            <span className="text-gray-900">Inmo</span><span className="text-[#c9962a]">nest</span>
+          </span>
         </Link>
       </div>
 
@@ -202,9 +204,11 @@ export default function DashboardSidebar({
 
       {/* ── Mobile topbar ────────────────────────────────────────────── */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Inmonest" width={28} height={28} className="rounded-lg" />
-          <span className="font-bold text-gray-900">Inmonest</span>
+        <Link href="/" className="flex items-center gap-0">
+          <Image src="/logo.png" alt="Inmonest" width={32} height={32} className="object-contain" />
+          <span className="text-base font-extrabold tracking-tight leading-none">
+            <span className="text-gray-900">Inmo</span><span className="text-[#c9962a]">nest</span>
+          </span>
         </Link>
         <button
           onClick={() => setMobileOpen(true)}

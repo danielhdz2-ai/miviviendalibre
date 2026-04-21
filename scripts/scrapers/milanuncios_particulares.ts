@@ -97,6 +97,19 @@ const DEMAND_PATTERNS = [
   /\bquiero\s+(?:comprar|alquilar)\b/i,
 ]
 
+// Listados de "activo ocupado" / inversión con inquilino — no son viviendas normales
+const INVESTMENT_PATTERNS = [
+  /activo\s*o[ck]up/i,
+  /\binmueble\s+ocup/i,
+  /\bpiso\s+ocup/i,
+  /\bcasa\s+ocup/i,
+  /\brentabilidad\s+\d/i,
+  /\binversi[oó]n\s+con\s+(?:inquilino|renta)/i,
+  /\bcon\s+inquilino\s+dentro\b/i,
+  /\brenta\s+garantizada\b/i,
+  /sareb|banco\s+malo/i,
+]
+
 /**
  * Devuelve true si el anuncio es de DEMANDA (alguien buscando comprar/alquilar).
  * Se evalúa el título y los primeros 200 caracteres de la descripción.
@@ -235,16 +248,25 @@ function parseAdFromJson(
   // Filtrar anuncios de demanda (compradores buscando inmueble)
   if (isDemandListing(ad.title ?? '', ad.description)) return null
 
+  // Filtrar "activo ocupado" e inversiones con inquilino
+  const titleDesc = `${ad.title ?? ''} ${(ad.description ?? '').slice(0, 300)}`
+  if (INVESTMENT_PATTERNS.some(re => re.test(titleDesc))) return null
+
   const price = ad.price?.cashPrice?.value ?? null
   if (!price || price <= 0) return null
 
   // ImÃ¡genes: los paths del JSON carecen de scheme â†’ aÃ±adir https://
+  // Forzar formato JPEG (?rule=detail_640x480) — Supabase Storage no soporta AVIF
   const images = (ad.images ?? [])
-    .map((img) =>
-      img.startsWith('http')
-        ? img
-        : `https://${img}${img.includes('?') ? '' : '?rule=detail_640x480'}`,
-    )
+    .map((img) => {
+      const full = img.startsWith('http') ? img : `https://${img}`
+      // Reemplazar o añadir rule=detail_640x480 que fuerza JPEG en el CDN de Milanuncios
+      if (full.includes('milanuncios.com')) {
+        const base = full.split('?')[0]
+        return `${base}?rule=detail_640x480`
+      }
+      return full
+    })
     .filter(Boolean)
   if (images.length === 0) return null
 
@@ -292,6 +314,7 @@ function parseAdFromJson(
     source_external_id: `mil_${externalId}`,
     is_particular:      ad.sellerType === 'private',
     external_link:      detailUrl,
+    // upload_to_storage eliminado: política global = external_url → img-proxy
   }
 }
 
@@ -302,6 +325,7 @@ async function scrapeParticulares(
   operation: 'venta' | 'alquiler',
   citySlug: string,
   maxPages: number,
+  maxImport = Infinity,
 ): Promise<void> {
   const geoInfo = CITY_MAP[citySlug]
   if (!geoInfo) {
@@ -385,6 +409,10 @@ async function scrapeParticulares(
               ` ${listing.images?.length ?? 0}📷 ${listing.bedrooms ?? '?'}hab]` +
               ` ${listing.title} – ${(ad.url ?? '').split('/').slice(-1)[0]}`,
             )
+            if (imported >= maxImport) {
+              console.log(`\n  ⏹️  Límite de importación alcanzado (${maxImport}). Parando.`)
+              return
+            }
           } else {
             rejected++
             console.log(
@@ -416,8 +444,9 @@ async function main() {
   const operation = (args[0] === 'venta' ? 'venta' : 'alquiler') as 'venta' | 'alquiler'
   const citySlug  = args[1] ?? 'madrid'
   const maxPages  = parseInt(args[2] ?? '5', 10)
+  const maxImport = args[3] ? parseInt(args[3], 10) : Infinity
 
-  await scrapeParticulares(operation, citySlug, maxPages)
+  await scrapeParticulares(operation, citySlug, maxPages, maxImport)
 }
 
 main().catch(console.error)

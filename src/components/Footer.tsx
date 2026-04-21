@@ -15,8 +15,8 @@ const CIUDADES = [
 const SERVICIOS_CIUDAD = [
   { titulo: 'Contratos de Arras',       ruta: 'contrato-arras' },
   { titulo: 'Contratos de Alquiler',    ruta: 'contrato-alquiler' },
+  { titulo: 'Alquiler de Particulares', ruta: 'alquiler-particulares' },
   { titulo: 'Alquiler sin Agencia',     ruta: 'alquiler-sin-agencia' },
-  { titulo: 'Vender Piso sin Comisión', ruta: 'vender-piso' },
 ]
 
 export default function Footer() {
@@ -104,8 +104,9 @@ export default function Footer() {
               <h3 className="text-xs font-bold uppercase tracking-widest text-[#c9962a] mb-4">Servicios</h3>
               <ul className="space-y-2.5 text-sm text-white/60">
                 <li><Link href="/pisos" className="hover:text-[#f4c94a] transition-colors">Portal inmobiliario</Link></li>
-                <li><Link href="/pisos?operation=rent" className="hover:text-[#f4c94a] transition-colors">Alquiler</Link></li>
-                <li><Link href="/pisos?operation=sale" className="hover:text-[#f4c94a] transition-colors">Compra</Link></li>
+                <li><Link href="/pisos?operacion=rent" className="hover:text-[#f4c94a] transition-colors">Alquiler</Link></li>
+                <li><Link href="/pisos?operacion=rent&solo_particulares=true" className="hover:text-[#f4c94a] transition-colors">Pisos de Particulares</Link></li>
+                <li><Link href="/pisos?operacion=sale" className="hover:text-[#f4c94a] transition-colors">Compra</Link></li>
                 <li><Link href="/publicar-anuncio" className="hover:text-[#f4c94a] transition-colors">Publicar anuncio</Link></li>
                 <li><Link href="/gestoria" className="hover:text-[#f4c94a] transition-colors">Gestoría online</Link></li>
                 <li><Link href="/vender-casa" className="hover:text-[#f4c94a] transition-colors">Vender sin comisión</Link></li>

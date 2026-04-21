@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-const LIMIT = 400
+const LIMIT = 700
 
 export default function DescriptionExpand({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false)

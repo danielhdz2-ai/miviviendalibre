@@ -11,6 +11,11 @@ const AGENCY_KEYWORDS = [
   'grupo inmobiliario',
   'servicios inmobiliarios',
   'real estate',
+  // Término inglés — agencias lo usan directamente en descripciones (ej. "La Casa Agency")
+  'agency',
+  // Expresión exclusiva de agencias: "presenta en exclusiva", "en exclusiva"
+  'en exclusiva',
+  'presenta en exclusiva',
   'remax',
   're/max',
   'century 21',
@@ -36,6 +41,13 @@ const AGENCY_KEYWORDS = [
   'comunidades',
   'portafolio',
   'portfolio',
+  // Señales de agencia en descripción de anuncio
+  'honorarios de agencia',
+  'gastos de agencia',
+  'nuestros inmuebles',
+  'nuestra cartera',
+  'gestión integral',
+  'asesoramiento inmobiliario',
 ]
 
 // Palabras que indican que el anuncio es de un particular

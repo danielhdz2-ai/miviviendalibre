@@ -35,6 +35,9 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
             <Link href="/pisos?operacion=rent" className="hover:text-gold-600 transition-colors">
               Alquiler
             </Link>
+            <Link href="/pisos?operacion=rent&solo_particulares=true" className="hover:text-gold-600 transition-colors">
+              Pisos de Particulares
+            </Link>
             <Link href="/pisos?operacion=sale" className="hover:text-gold-600 transition-colors">
               Compra
             </Link>
@@ -97,6 +100,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
         {menuOpen && (
           <div className="md:hidden border-t border-gold-100 py-3 space-y-1">
             <Link href="/pisos?operacion=rent" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Alquiler</Link>
+            <Link href="/pisos?operacion=rent&solo_particulares=true" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Pisos de Particulares</Link>
             <Link href="/pisos?operacion=sale" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Compra</Link>
             <Link href="/publicar-anuncio" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Publicar gratis</Link>
             <Link href="/vender-casa" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Vender casa</Link>

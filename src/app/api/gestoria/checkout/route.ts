@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   const successPath = service_key === 'reserva-compra'
     ? '/gestoria/carga-documentos'
-    : '/mis-documentos'
+    : '/mi-cuenta/contratos'
 
   // Llamada directa a la API REST de Stripe con fetch nativo (sin SDK)
   const params = new URLSearchParams()
@@ -90,11 +90,31 @@ export async function POST(req: NextRequest) {
       body: params.toString(),
     })
 
-    const data = await res.json() as { url?: string; error?: { message: string } }
+    const data = await res.json() as { id?: string; url?: string; error?: { message: string } }
 
     if (!res.ok) {
       console.error('[gestoria/checkout] Stripe API error:', data.error)
       return NextResponse.json({ error: data.error?.message ?? 'Error en Stripe' }, { status: 500 })
+    }
+
+    // Crear registro pendiente en gestoria_requests para que el dashboard lo muestre de inmediato
+    if (data.id) {
+      const { error: grErr } = await supabase
+        .from('gestoria_requests')
+        .upsert(
+          {
+            session_id:   data.id,
+            service_key,
+            client_email: safeEmail ?? null,
+            client_name:  (client_name?.trim() ?? null),
+            client_phone: (client_phone?.trim() ?? null),
+            amount_eur:   service.price_eur,
+            status:       'pending',
+            user_id:      user?.id ?? null,
+          },
+          { onConflict: 'session_id' }
+        )
+      if (grErr) console.warn('[gestoria/checkout] gestoria_requests pending upsert:', grErr.message)
     }
 
     return NextResponse.json({ url: data.url })

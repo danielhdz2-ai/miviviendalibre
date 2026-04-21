@@ -2,7 +2,11 @@ import Link from 'next/link'
 import Navbar from '@/components/NavbarServer'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: '¡Inmonest Turbo activado!' }
+export const metadata: Metadata = {
+  title: '¡Inmonest Turbo activado!',
+  // Private post-payment page — must not appear in search results
+  robots: { index: false, follow: false },
+}
 
 interface Props {
   searchParams: Promise<{ listing_id?: string; session_id?: string }>
@@ -39,7 +43,7 @@ export default async function TurboExitoPage({ searchParams }: Props) {
             </ul>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
             {listing_id && (
               <Link
                 href={`/pisos/${listing_id}`}
@@ -54,6 +58,56 @@ export default async function TurboExitoPage({ searchParams }: Props) {
             >
               Ir a mi cuenta
             </Link>
+          </div>
+
+          {/* Información sobre el modo Turbo */}
+          <div className="text-left space-y-6 mt-4 border-t border-amber-100 pt-8">
+            <h2 className="text-xl font-bold text-gray-900">¿Qué pasa ahora?</h2>
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 mb-1">Bump diario a las 9:00 AM</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Cada mañana a las 9:00 AM (hora de España), tu anuncio sube automáticamente a la primera
+                posición de los resultados de búsqueda en tu ciudad y categoría. Esto maximiza la visibilidad
+                durante las horas de mayor tráfico del portal, que suelen concentrarse entre las 9:00 y las 13:00.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 mb-1">Duración: 7 días naturales</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                El modo Turbo está activo durante 7 días completos desde la activación. Durante ese periodo
+                tu anuncio recibe el bump diario sin necesidad de hacer nada más. Al finalizar, el anuncio
+                permanece publicado en su posición natural.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 mb-1">Cómo aprovechar al máximo el Turbo</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Para maximizar el impacto, te recomendamos revisar el anuncio antes de que entre en vigor
+                el primer bump: actualiza las fotos si es necesario, revisa que el precio sea competitivo
+                y asegúrate de que la descripción sea completa y honesta. Los compradores que lleguen en
+                los próximos 7 días serán los más activos del mercado.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 mb-1">Confirmación por email</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Recibirás un email de confirmación con el resumen del pago y los detalles de activación.
+                Si en 10 minutos no ves el email, revisa la carpeta de spam. Puedes contactarnos en
+                cualquier momento desde la sección de contacto si tienes alguna duda.
+              </p>
+            </div>
+
+            <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <strong>Consejo:</strong> Los anuncios Turbo reciben de media 3 veces más visitas que
+                los anuncios estándar durante la semana de activación. Responde rápido a los mensajes
+                que recibas para no perder contactos interesados.
+              </p>
+            </div>
           </div>
         </div>
       </main>

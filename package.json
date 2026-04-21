@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate-descriptions": "npx tsx scripts/generate-listing-descriptions.ts",
+    "generate-priority-urls": "npx tsx scripts/generate-priority-urls.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

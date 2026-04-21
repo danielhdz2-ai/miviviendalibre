@@ -211,35 +211,59 @@ async function fetchDetail(url: string): Promise<WallapopDetail | null> {
           nextData?.props?.pageProps?.initialState?.itemDetail
 
         if (item) {
-          title = title || decodeHtml(item.title ?? item.name ?? '')
-          description = description || decodeHtml(item.description ?? '')
-          price = price ?? item.sale_price?.amount ?? item.price?.amount ?? item.price
-          // Imágenes de calidad en item.images
+          // Título: en la API actual es item.title.original
+          const rawTitle = item.title?.original ?? item.title?.text ?? item.name ?? (typeof item.title === 'string' ? item.title : '')
+          if (!title && rawTitle) title = decodeHtml(rawTitle)
+          // Descripción
+          const rawDesc = item.description?.original ?? item.description?.text ?? (typeof item.description === 'string' ? item.description : '')
+          if (!description && rawDesc) description = decodeHtml(rawDesc).slice(0, 2000)
+          // Precio: estructura actual es item.price.cash.amount
+          price = price ?? item.price?.cash?.amount ?? item.sale_price?.amount ?? item.price?.amount
+          // Imágenes: solo la mejor calidad (W800), deduplicadas por ID de imagen
           if (item.images && Array.isArray(item.images)) {
+            const seenIds = new Set<string>()
             for (const img of item.images) {
-              const imgUrl = img.large ?? img.medium ?? img.original ?? img.urls?.large ?? img.url ?? img
-              if (typeof imgUrl === 'string' && imgUrl.startsWith('http')) jldImages.push(imgUrl)
+              const imgUrl = img.urls?.big ?? img.urls?.medium ?? img.urls?.small ?? img.large ?? img.medium ?? img.original ?? img.url
+              if (typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
+                // Extraer ID único de la imagen (sin query string ni tamaño)
+                const baseUrl = imgUrl.split('?')[0]
+                if (!seenIds.has(baseUrl)) {
+                  seenIds.add(baseUrl)
+                  jldImages.push(imgUrl)
+                }
+              }
             }
           }
-          // Características
-          const extra = item.extra_info ?? item.attributes ?? {}
-          if (Array.isArray(extra)) {
-            for (const attr of extra) {
-              const key = (attr.attribute_key ?? attr.key ?? '').toLowerCase()
-              const val = attr.attribute_value ?? attr.value
-              if (key.includes('room') || key.includes('bedroom') || key.includes('habitaci')) bedrooms = parseInt(val, 10) || undefined
-              if (key.includes('bath') || key.includes('baño')) bathrooms = parseInt(val, 10) || undefined
-              if (key.includes('surface') || key.includes('area') || key.includes('m2') || key.includes('metros')) area_m2 = parseFloat(val) || undefined
-              if (key.includes('rent') || key.includes('alquil')) operationRaw = 'rent'
-              if (key.includes('sale') || key.includes('venta') || key.includes('compra')) operationRaw = 'sale'
+          // Características: realEstateInfo (estructura actual) o extra_info (legacy)
+          const rei = item.realEstateInfo
+          if (rei) {
+            if (bedrooms === undefined && rei.rooms?.value !== undefined) bedrooms = parseInt(rei.rooms.value, 10) || undefined
+            if (bathrooms === undefined && rei.bathrooms?.value !== undefined) bathrooms = parseInt(rei.bathrooms.value, 10) || undefined
+            if (area_m2 === undefined && rei.surface?.value !== undefined) area_m2 = parseFloat(rei.surface.value) || undefined
+            if (rei.operation?.value === 'rent') operationRaw = 'rent'
+            else if (rei.operation?.value === 'sale') operationRaw = 'sale'
+          } else {
+            const extra = item.extra_info ?? item.attributes ?? []
+            if (Array.isArray(extra)) {
+              for (const attr of extra) {
+                const key = (attr.attribute_key ?? attr.key ?? '').toLowerCase()
+                const val = attr.attribute_value ?? attr.value
+                if (key.includes('room') || key.includes('bedroom') || key.includes('habitaci')) bedrooms = parseInt(val, 10) || undefined
+                if (key.includes('bath') || key.includes('baño')) bathrooms = parseInt(val, 10) || undefined
+                if (key.includes('surface') || key.includes('area') || key.includes('m2') || key.includes('metros')) area_m2 = parseFloat(val) || undefined
+                if (key.includes('rent') || key.includes('alquil')) operationRaw = 'rent'
+                if (key.includes('sale') || key.includes('venta') || key.includes('compra')) operationRaw = 'sale'
+              }
             }
           }
-          // Usuario / anunciante
-          const user = item.user ?? item.seller ?? item.owner
-          if (user) {
-            advertiser_name = user.micro_name ?? user.name ?? undefined
-            // Pro badge
-            if (user.pro_badge === true || user.is_pro === true || user.type === 'professional') {
+          // Anunciante: itemSeller está en pageProps, no en item
+          const sellerData = nextData?.props?.pageProps?.itemSeller ?? item.user ?? item.seller ?? item.owner
+          if (sellerData) {
+            advertiser_name = sellerData.microName ?? sellerData.micro_name ?? sellerData.name ?? undefined
+            // Pro: type es 'professional'/'agency', o badgeType/sellerType = 'pro'
+            if (sellerData.type === 'professional' || sellerData.type === 'agency' ||
+                sellerData.badgeType === 'pro' || sellerData.sellerType === 'pro' ||
+                sellerData.pro_badge === true || sellerData.is_pro === true) {
               is_particular = false
             }
           }
@@ -247,23 +271,70 @@ async function fetchDetail(url: string): Promise<WallapopDetail | null> {
           if (!lat && item.location?.latitude) lat = item.location.latitude
           if (!lng && item.location?.longitude) lng = item.location.longitude
           if (!city && item.location?.city) city = item.location.city
-          if (!district && item.location?.district) district = item.location.district
+          if (!district && (item.location?.district ?? item.location?.postalCode)) district = item.location.district ?? item.location.postalCode
         }
       } catch { /* noop */ }
     }
 
-    // ── Fallback: parsear HTML si JSON-LD fallo ─────────────────────────────
+    // ── Fallback: parsear HTML si JSON-LD/NEXT_DATA falló ───────────────────
     if (!title) {
       const h1 = html.match(/<h1[^>]*>([\s\S]{3,150}?)<\/h1>/)
       if (h1) title = decodeHtml(h1[1])
     }
+    // Fallback descripción: meta description de la página
+    if (!description) {
+      const metaDesc = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{10,})["']/i)
+                    ?? html.match(/<meta[^>]+content=["']([^"']{10,})["'][^>]+name=["']description["']/i)
+      if (metaDesc) description = decodeHtml(metaDesc[1]).slice(0, 2000)
+    }
 
-    // Imágenes desde CDN de Wallapop si no las tenemos
-    const cdnImgs = [...new Set([
-      ...jldImages,
-      ...[...html.matchAll(/https:\/\/cdn\.wallapop\.com\/images\/[^"'\s]+\.jpg[^"'\s]*/gi)].map(m => m[0]),
-      ...[...html.matchAll(/https:\/\/img\.wallapop\.com\/[^"'\s]+/gi)].map(m => m[0]),
-    ])].filter(u => !u.includes('logo') && !u.includes('placeholder') && u.length > 40).slice(0, 15)
+    // Imágenes: usar solo las de __NEXT_DATA__ (ya deduplicadas por ID)
+    // NO usar regex sobre HTML — captura URLs malformadas con ); o múltiples tamaños
+    // Filtrar logos de portales competidores (yaencontre, idealista, etc.) que se suben como foto en Wallapop.
+    // Los logos son cuadrados (ratio ~1:1). Se detectan leyendo las cabeceras Content-Length
+    // y las dimensiones del JPEG via los primeros bytes (SOF marker).
+    const cdnImgsRaw = jldImages
+      .filter(u => u.startsWith('http') && !u.includes('logo') && !u.includes('placeholder') && u.length > 40)
+      .slice(0, 20)
+
+    // Verificar dimensiones via fetch parcial (primeros 4KB del JPEG bastan para leer SOF0)
+    const cdnImgs: string[] = []
+    for (const imgUrl of cdnImgsRaw) {
+      try {
+        const res = await fetch(imgUrl, {
+          headers: { Range: 'bytes=0-4096', Referer: 'https://es.wallapop.com/', 'User-Agent': UA },
+          signal: AbortSignal.timeout(5000),
+        })
+        const buf = Buffer.from(await res.arrayBuffer())
+        // Buscar marker SOF0 (0xFFC0) o SOF2 (0xFFC2) en el buffer para leer W/H
+        let isLogoLike = false
+        for (let i = 0; i < buf.length - 8; i++) {
+          if (buf[i] === 0xFF && (buf[i+1] === 0xC0 || buf[i+1] === 0xC2)) {
+            const h = buf.readUInt16BE(i + 5)
+            const w = buf.readUInt16BE(i + 7)
+            if (h > 0 && w > 0) {
+              const ratio = w / h
+              // Cuadrado (0.85–1.15) con lado > 250px → probable logo portal
+              if (ratio >= 0.85 && ratio <= 1.15 && Math.min(w, h) > 250) {
+                isLogoLike = true
+              }
+              // Muy vertical (ratio < 0.5) → también descartar
+              if (ratio < 0.5) {
+                isLogoLike = true
+              }
+            }
+            break
+          }
+        }
+        if (!isLogoLike) cdnImgs.push(imgUrl)
+        else console.log(`    🚫 Imagen descartada (logo/cuadrada): ${imgUrl.split('/').pop()}`)
+      } catch {
+        // Si falla el fetch de verificación, incluir la imagen de todos modos
+        cdnImgs.push(imgUrl)
+      }
+    }
+    // Limitar a 15 fotos finales
+    cdnImgs.splice(15)
 
     // Precio desde HTML si falta
     if (!price) {
@@ -298,11 +369,53 @@ async function fetchDetail(url: string): Promise<WallapopDetail | null> {
       is_particular = false
     }
 
+    // ── Verificación secundaria: señales de agencia en título/descripción ────────
+    // Aunque Wallapop no marque al vendedor como "pro", las agencias publican anuncios
+    // usando cuentas de usuario normal (ej. "Yaencontre..") y delatan su naturaleza
+    // en el texto: "La Casa Agency presenta en exclusiva…", "en exclusiva", etc.
+    // Si hay señales inequívocas de agencia en el contenido → reclasificar.
+    if (is_particular) {
+      const textCheck = `${title} ${description ?? ''}`.toLowerCase()
+      const AGENCY_TEXT_SIGNALS = [
+        'agency',              // inglés — ej: "La Casa Agency"
+        'en exclusiva',        // frase típica de agencias
+        'presenta en exclusiva',
+        'agencia inmobiliaria',
+        'inmobiliaria',
+        'honorarios',
+        'comisión de agencia',
+        'gastos de agencia',
+        'nuestros inmuebles',
+        'nuestra cartera',
+        'grupo inmobiliario',
+        'servicios inmobiliarios',
+        'asesor inmobiliario',
+        'gestión integral',
+        'gestión inmobiliaria',
+        'real estate',
+        'info@',
+        'ventas@',
+        'contacto@',
+      ]
+      const agencySignal = AGENCY_TEXT_SIGNALS.find(s => textCheck.includes(s))
+      if (agencySignal) {
+        is_particular = false
+        console.log(`    🏢 [AGENCIA por texto] "${agencySignal}" → is_particular=false: ${title.slice(0, 55)}`)
+      }
+    }
     // Extraer external_id desde la URL: /item/piso-en-alquiler-1234567890
     const idMatch = url.match(/-(\d{8,13})$/)
     const external_id = idMatch ? idMatch[1] : url.split('/item/')[1]?.replace(/[^a-z0-9-]/gi, '').slice(0, 50) ?? ''
 
     if (!title || !price) return null
+
+    // Normalizar microName: Wallapop los devuelve en TODO_MAYÚSCULAS
+    // → looksLikeCorporateName los detectaría como empresa. Convertir a Title Case.
+    const normalizedName = advertiser_name
+      ? /^[A-ZÁÉÍÓÚÑ0-9\s]+$/.test(advertiser_name.trim())
+        ? advertiser_name.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+        : advertiser_name
+      : undefined
 
     return {
       title,
@@ -317,7 +430,7 @@ async function fetchDetail(url: string): Promise<WallapopDetail | null> {
       district,
       lat,
       lng,
-      advertiser_name,
+      advertiser_name: normalizedName,
       is_particular,
       external_id,
     }
@@ -332,6 +445,11 @@ async function main() {
   const opArg = (process.argv[2] ?? 'alquiler').toLowerCase() as 'alquiler' | 'venta'
   const cityArg = (process.argv[3] ?? 'barcelona').toLowerCase()
   const maxPages = parseInt(process.argv[4] ?? '5', 10)
+  // maxImport: límite de importaciones (útil para tests — máx 3 al probar)
+  const maxImport = process.argv[5] ? parseInt(process.argv[5], 10) : Infinity
+  // Filtro de precio (€) — undefined = sin límite
+  const minPrice = process.argv[6] ? parseInt(process.argv[6], 10) : undefined
+  const maxPrice = process.argv[7] ? parseInt(process.argv[7], 10) : undefined
 
   const cityInfo = CITY_MAP[cityArg]
   if (!cityInfo) {
@@ -342,7 +460,10 @@ async function main() {
   const operation: 'sale' | 'rent' = opArg === 'venta' ? 'sale' : 'rent'
   const listUrl = buildListUrl(opArg, cityInfo.slug)
 
-  console.log(`\n🟠 Wallapop — ${opArg} en ${cityInfo.city} (${maxPages} páginas)`)
+  const priceLabel = minPrice || maxPrice
+    ? ` | precio: ${minPrice ? minPrice.toLocaleString('es-ES') + '€' : '0€'} – ${maxPrice ? maxPrice.toLocaleString('es-ES') + '€' : '∞'}`
+    : ''
+  console.log(`\n🟠 Wallapop — ${opArg} en ${cityInfo.city} (${maxPages} páginas)${priceLabel}`)
   console.log(`   URL base: ${listUrl}\n`)
 
   // ── Fase 1: Playwright para extraer URLs ─────────────────────────────────
@@ -391,6 +512,10 @@ async function main() {
   let errors = 0
 
   for (let i = 0; i < allDetailUrls.length; i++) {
+    if (inserted >= maxImport) {
+      console.log(`\n⏹️  Límite de importación alcanzado (${maxImport}). Parando.`)
+      break
+    }
     const url = allDetailUrls[i]
     process.stdout.write(`[${i + 1}/${allDetailUrls.length}] `)
 
@@ -399,6 +524,16 @@ async function main() {
       console.log(`⚠️  Sin datos: ${url.split('/item/')[1] ?? url}`)
       errors++
       await sleep(500)
+      continue
+    }
+
+    // Filtro de precio
+    if (minPrice !== undefined && (detail.price ?? 0) < minPrice) {
+      console.log(`⏭️  Precio ${detail.price?.toLocaleString('es-ES')}€ < mín ${minPrice.toLocaleString('es-ES')}€ — omitido`)
+      continue
+    }
+    if (maxPrice !== undefined && (detail.price ?? Infinity) > maxPrice) {
+      console.log(`⏭️  Precio ${detail.price?.toLocaleString('es-ES')}€ > máx ${maxPrice.toLocaleString('es-ES')}€ — omitido`)
       continue
     }
 
@@ -421,9 +556,16 @@ async function main() {
       is_particular: detail.is_particular,
       is_bank: false,
       images: detail.images.length > 0 ? detail.images : undefined,
+      // NO upload_to_storage: las URLs del CDN de Wallapop se sirven via img-proxy
+      // El proxy cachea en Vercel Edge 7 días → cero egress de Supabase Storage
       external_link: url,
       phone: undefined,  // Wallapop no expone teléfonos
-      advertiser_name: detail.advertiser_name,
+      // Normalizar nombre: microName de Wallapop suele ser TODO_MAYÚSCULAS, lo que
+      // dispararía looksLikeCorporateName → title-case para que no se detecte como empresa
+      advertiser_name: detail.advertiser_name
+        ? detail.advertiser_name.replace(/^[A-ZÁÉÍÓÚÑ\s]+$/, (s) =>
+            s.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()))
+        : undefined,
     }
 
     const ok = await upsertListing(listing)

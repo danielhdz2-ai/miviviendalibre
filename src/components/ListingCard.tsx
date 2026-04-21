@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Listing } from '@/types/listings'
 import ListingCardGallery from './ListingCardGallery'
 import FavoriteButton from './FavoriteButton'
+import { decodeHtml } from '@/lib/html'
 
 interface ListingCardProps {
   listing: Listing
@@ -75,12 +76,12 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
           {/* Título */}
           <h3 className="mt-1 text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
-            {listing.title}
+            {decodeHtml(listing.title)}
           </h3>
 
           {/* Localización */}
           <p className="mt-1 text-xs text-gray-500">
-            {[listing.district, listing.city, listing.province].filter(Boolean).join(', ')}
+            {[decodeHtml(listing.district), decodeHtml(listing.city), decodeHtml(listing.province)].filter(Boolean).join(', ')}
           </p>
 
           {/* Entidad bancaria */}

@@ -21,13 +21,17 @@ function isSafeUrl(rawUrl: string): boolean {
 
 // Referer por dominio — evita el bloqueo de hotlinking
 const REFERER_MAP: Record<string, string> = {
-  'tucasa.com':     'https://www.tucasa.com/',
-  'apinmo.com':     'https://www.tucasa.com/',
-  'fotocasa.es':    'https://www.fotocasa.es/',
-  'habitaclia.com': 'https://www.habitaclia.com/',
-  'mitula.es':      'https://www.mitula.es/',
-  'trovit.es':      'https://encontr.es/',
-  'kelify.com':     'https://www.kelify.com/',
+  'tucasa.com':          'https://www.tucasa.com/',
+  'apinmo.com':          'https://www.tucasa.com/',
+  'fotocasa.es':         'https://www.fotocasa.es/',
+  'habitaclia.com':      'https://www.habitaclia.com/',
+  'mitula.es':           'https://www.mitula.es/',
+  'trovit.es':           'https://encontr.es/',
+  'kelify.com':          'https://www.kelify.com/',
+  'milanuncios.com':     'https://www.milanuncios.com/',
+  'images.milanuncios.com': 'https://www.milanuncios.com/',
+  'wallapop.com':        'https://es.wallapop.com/',
+  'cdn.wallapop.com':    'https://es.wallapop.com/',
 }
 
 function getReferer(url: string): string | undefined {
@@ -57,7 +61,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        Accept: 'image/webp,image/jpeg,image/png,image/*;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
         ...(getReferer(imageUrl) ? { Referer: getReferer(imageUrl)! } : {}),
       },

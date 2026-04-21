@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { createClient } from '@supabase/supabase-js'
 
 const BASE_URL = 'https://inmonest.com'
 
@@ -60,6 +61,58 @@ const VENDER_PISO_PAGES: MetadataRoute.Sitemap = CIUDADES.map((ciudad) => ({
   priority: 0.85,
 }))
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [...STATIC_PAGES, ...ARRAS_PAGES, ...ALQUILER_PAGES, ...ALQUILER_SIN_AGENCIA_PAGES, ...VENDER_PISO_PAGES]
+// Páginas SEO de pisos por ciudad
+const PISOS_CIUDAD_PAGES: MetadataRoute.Sitemap = CIUDADES.map((ciudad) => ({
+  url: `${BASE_URL}/${ciudad}/pisos`,
+  lastModified: new Date(),
+  changeFrequency: 'weekly' as const,
+  priority: 0.9,
+}))
+
+// Páginas SEO de alquiler de particulares por ciudad
+const ALQUILER_PARTICULARES_PAGES: MetadataRoute.Sitemap = CIUDADES.map((ciudad) => ({
+  url: `${BASE_URL}/${ciudad}/alquiler-particulares`,
+  lastModified: new Date(),
+  changeFrequency: 'daily' as const,
+  priority: 0.92,
+}))
+
+async function getListingUrls(): Promise<MetadataRoute.Sitemap> {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data, error } = await supabase
+      .from('listings')
+      .select('id, updated_at')
+      .eq('status', 'published')
+      .limit(10000)
+
+    if (error || !data) return []
+
+    return data.map((listing) => ({
+      url: `${BASE_URL}/pisos/${listing.id}`,
+      lastModified: listing.updated_at ? new Date(listing.updated_at) : new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    }))
+  } catch {
+    return []
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const listingUrls = await getListingUrls()
+
+  return [
+    ...STATIC_PAGES,
+    ...ARRAS_PAGES,
+    ...ALQUILER_PAGES,
+    ...ALQUILER_SIN_AGENCIA_PAGES,
+    ...VENDER_PISO_PAGES,
+    ...PISOS_CIUDAD_PAGES,
+    ...ALQUILER_PARTICULARES_PAGES,
+    ...listingUrls,
+  ]
 }

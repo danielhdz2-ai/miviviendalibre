@@ -151,3 +151,74 @@ export async function recordView(listingId: string, sessionId: string) {
     .from('listing_views')
     .insert({ listing_id: listingId, session_id: sessionId })
 }
+
+// Términos que nunca deben aparecer en el carrusel de alternativas
+const CAROUSEL_BLACKLIST = [
+  'hipoteca', 'deuda', 'nuda propiedad', 'indiviso', 'embargo', 'subasta',
+  'renta antigua', 'herencia', 'proindiviso', 'usufructo', 'uso fructo',
+  'se busca', 'busco piso', 'busco casa', 'compro piso', 'compro casa',
+]
+
+export async function getSimilarListings(
+  currentId: string,
+  city: string | null,
+  operation: string,
+  price: number | null,
+  limit = 12,
+): Promise<Listing[]> {
+  if (!city) return []
+
+  const supabase = createClient_( 
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  let q = supabase
+    .from('listings')
+    .select('id, title, price_eur, operation, city, district, province, bedrooms, bathrooms, area_m2, is_particular, is_bank, bank_entity, turbo_until, status, published_at, created_at, ranking_score')
+    .eq('status', 'published')
+    .eq('has_images', true)
+    .eq('operation', operation)
+    .ilike('city', `%${city}%`)
+    .neq('id', currentId)
+
+  // Rango de precio ±20%
+  if (price) {
+    q = q.gte('price_eur', Math.round(price * 0.8))
+         .lte('price_eur', Math.round(price * 1.2))
+  }
+
+  q = q.order('ranking_score', { ascending: false })
+       .order('published_at', { ascending: false })
+       .limit(limit * 3) // traemos extra para filtrar blacklist
+
+  const { data } = await q
+  if (!data?.length) return []
+
+  // Filtro local de calidad: excluir títulos con términos prohibidos
+  const filtered = (data as Listing[]).filter(l => {
+    const t = l.title.toLowerCase()
+    return !CAROUSEL_BLACKLIST.some(term => t.includes(term))
+  })
+
+  // Cargar imágenes de los elegidos (1 por listing)
+  const chosen = filtered.slice(0, limit)
+  if (!chosen.length) return []
+
+  const ids = chosen.map(l => l.id)
+  const { data: imgs } = await supabase
+    .from('listing_images')
+    .select('listing_id, id, external_url, storage_path, position')
+    .in('listing_id', ids)
+    .eq('position', 0)
+
+  if (imgs?.length) {
+    const imgMap = new Map(imgs.map(i => [i.listing_id, [i]]))
+    for (const l of chosen) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (l as unknown as Record<string, unknown>).listing_images = imgMap.get(l.id) ?? []
+    }
+  }
+
+  return chosen
+}
