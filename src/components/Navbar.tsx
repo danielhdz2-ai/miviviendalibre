@@ -48,7 +48,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
               Vender casa
             </Link>
             <Link href="/gestoria" className="hover:text-gold-600 transition-colors">
-              Contratos
+              Gestoría
             </Link>
             <Link href="/agencias" className="hover:text-gold-600 transition-colors">
               Agencias
@@ -104,7 +104,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
             <Link href="/pisos?operacion=sale" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Compra</Link>
             <Link href="/publicar-anuncio" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Publicar gratis</Link>
             <Link href="/vender-casa" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Vender casa</Link>
-            <Link href="/gestoria" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Contratos</Link>
+            <Link href="/gestoria" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Gestoría</Link>
             <Link href="/agencias" className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gold-50" onClick={() => setMenuOpen(false)}>Agencias</Link>
             <div className="pt-2 flex flex-col gap-2">
               <Link href="/publicar-anuncio" className="block px-3 py-2 rounded-full bg-gold-500 text-white text-sm font-semibold text-center hover:bg-gold-600" onClick={() => setMenuOpen(false)}>Publicar anuncio</Link>
