@@ -200,6 +200,12 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
         <nav className="text-xs text-gray-400 mb-6 flex items-center gap-1.5">
           <Link href="/pisos" className="hover:text-gray-600">Anuncios</Link>
           <span>/</span>
+          {listing.is_particular && (
+            <>
+              <Link href="/pisos?solo_particulares=1" className="hover:text-gray-600">Particulares</Link>
+              <span>/</span>
+            </>
+          )}
           {listing.city && (
             <>
               <Link href={`/pisos?ciudad=${listing.city.toLowerCase()}`} className="hover:text-gray-600">

@@ -574,6 +574,57 @@ export async function upsertListing(listing: ScrapedListing): Promise<boolean> {
 const STORAGE_BUCKET = 'listings'
 const STORAGE_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 
+// ── Filtro ratio 1:1 (logos cuadrados) ───────────────────────────────────────
+/**
+ * Extrae dimensiones de los primeros bytes de una imagen (PNG y WebP VP8 lossy).
+ * Para JPEG no es trivial (SOF marker variable), se ignora → fail-open.
+ */
+function parseDimensionsFromBuffer(buf: Uint8Array): { width: number; height: number } | null {
+  // PNG: firma(8) + IHDR: length(4) + type(4) + width(4) + height(4) — bytes 16-23
+  if (buf.length >= 24 &&
+      buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+    const w = ((buf[16] << 24) | (buf[17] << 16) | (buf[18] << 8) | buf[19]) >>> 0
+    const h = ((buf[20] << 24) | (buf[21] << 16) | (buf[22] << 8) | buf[23]) >>> 0
+    if (w > 0 && h > 0) return { width: w, height: h }
+  }
+  // WebP VP8 lossy: "RIFF"(4)+fileSize(4)+"WEBP"(4)+"VP8 "(4)+chunkSize(4)+frame(3)+w_m1(2)+h_m1(2)
+  if (buf.length >= 30 &&
+      buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50 &&
+      buf[12] === 0x56 && buf[13] === 0x50 && buf[14] === 0x38 && buf[15] === 0x20) {
+    const w = ((buf[27] & 0x3F) << 8 | buf[26]) + 1
+    const h = ((buf[29] & 0x3F) << 8 | buf[28]) + 1
+    if (w > 0 && h > 0) return { width: w, height: h }
+  }
+  return null
+}
+
+/** Ratio dentro del rango [0.85, 1.18] — ±15% de cuadrado → probable logo */
+function isSquareRatio(w: number, h: number): boolean {
+  const r = w / h
+  return r >= 0.85 && r <= 1.18
+}
+
+/**
+ * Descarga los primeros 512 bytes de una URL y comprueba si la imagen es ~cuadrada.
+ * Fail-open: devuelve false si no se puede determinar (→ la imagen se mantiene).
+ */
+async function isSquareImage(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      headers: { Range: 'bytes=0-511', 'User-Agent': STORAGE_UA },
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!res.ok && res.status !== 206) return false
+    const buf = new Uint8Array(await res.arrayBuffer())
+    const dims = parseDimensionsFromBuffer(buf)
+    if (!dims) return false
+    return isSquareRatio(dims.width, dims.height)
+  } catch {
+    return false
+  }
+}
+
 /**
  * Descarga una imagen desde externalUrl y la sube al bucket 'listings' de
  * Supabase Storage usando service_role key (bypassa RLS).
@@ -608,6 +659,14 @@ export async function uploadImageToStorage(
 
     const buffer = await imgRes.arrayBuffer()
     if (buffer.byteLength < 1024) return null  // demasiado pequeño → página de error
+
+    // Filtrar logos cuadrados antes de subir al bucket
+    const bytes = new Uint8Array(buffer)
+    const dims = parseDimensionsFromBuffer(bytes)
+    if (dims && isSquareRatio(dims.width, dims.height)) {
+      console.log(`  ⬛ [Logo 1:1] ${dims.width}×${dims.height} — descartando: ${storagePath}`)
+      return null
+    }
 
     const uploadRes = await fetch(
       `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`,
@@ -647,7 +706,15 @@ async function insertImages(
   const capped = images.slice(0, 15)
   if (capped.length === 0) return
 
-  const rows = capped.map((url, i) => ({
+  // Filtrar imágenes con ratio 1:1 (logos cuadrados) en paralelo
+  const squareFlags = await Promise.all(capped.map(url => isSquareImage(url)))
+  const filtered = capped.filter((_, i) => !squareFlags[i])
+  if (filtered.length < capped.length) {
+    console.log(`  🖼 Filtradas ${capped.length - filtered.length} imagen(es) 1:1 (logos)`)
+  }
+  if (filtered.length === 0) return
+
+  const rows = filtered.map((url, i) => ({
     listing_id: listingId,
     external_url: url,
     storage_path: null,
