@@ -9,6 +9,7 @@ import ListingGallery from '@/components/ListingGallery'
 import DescriptionExpand from './DescriptionExpand'
 import RevealContact from './RevealContact'
 import SimilarListingsCarousel from '@/components/SimilarListingsCarousel'
+import MortgageCalculator from '@/components/MortgageCalculator'
 import { getListingById, getSimilarListings } from '@/lib/listings'
 import { createClient } from '@/lib/supabase/server'
 import { decodeHtml } from '@/lib/html'
@@ -529,6 +530,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
               </Link>
             </div>
 
+            {/* Calculadora hipotecaria — solo venta */}
+            {listing.operation === 'sale' && (
+              <MortgageCalculator precioVivienda={listing.price_eur ?? undefined} />
+            )}
+
           </div>
         </div>
 
@@ -554,6 +560,11 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
               />
             </div>
           </div>
+
+          {/* Calculadora hipotecaria mobile — solo venta */}
+          {listing.operation === 'sale' && (
+            <MortgageCalculator precioVivienda={listing.price_eur ?? undefined} />
+          )}
         </div>
 
         {/* ── Carrusel de pisos similares ── */}
