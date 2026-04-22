@@ -176,6 +176,91 @@ const SERVICES: Service[] = [
     price: 40,
     image: '/gestoria/gestoria6.jpg',
   },
+
+  // --- ALQUILER ESPECIAL ---
+  {
+    key: 'alquiler-habitaciones',
+    name: 'Contrato de Alquiler de Habitación',
+    shortName: 'Alquiler Habitación',
+    category: 'alquiler',
+    description: 'Para coliving y pisos compartidos. Regula zonas comunes, normas de convivencia, fianza y condiciones de salida con todas las garantías jurídicas. Regido por el Código Civil.',
+    includes: [
+      'Regulación de zonas comunes y normas de convivencia',
+      'Fianza y condiciones de devolución',
+      'Duración, prórrogas y salida anticipada',
+      'Entrega en 48h · PDF firmable digitalmente',
+    ],
+    price: 100,
+    image: '/gestoria/gestoria6.jpg',
+    badge: 'Coliving',
+  },
+  {
+    key: 'alquiler-local-comercial',
+    name: 'Contrato de Alquiler de Local Comercial',
+    shortName: 'Alquiler Local',
+    category: 'alquiler',
+    description: 'Rige por el Título III LAU (uso distinto de vivienda). Protege al empresario y al propietario: derecho de tanteo, obras, renta variable y garantías adicionales incluidas.',
+    includes: [
+      'Régimen LAU para uso distinto de vivienda',
+      'Derecho de tanteo, retracto y traspaso',
+      'Régimen de obras y mejoras del local',
+      'Entrega en 48h · PDF firmable digitalmente',
+    ],
+    price: 100,
+    image: '/gestoria/gestoria2.jpg',
+  },
+  {
+    key: 'alquiler-garaje-trastero',
+    name: 'Contrato de Alquiler de Garaje o Trastero',
+    shortName: 'Garaje o Trastero',
+    category: 'alquiler',
+    description: 'El contrato más económico y ágil. Regula uso del espacio, vehículos permitidos, responsabilidad por daños y devolución de fianza. Entrega en 24h.',
+    includes: [
+      'Descripción del espacio y vehículos permitidos',
+      'Fianza y condiciones de devolución',
+      'Responsabilidad por daños y siniestros',
+      'Entrega en 24h · PDF firmable digitalmente',
+    ],
+    price: 40,
+    image: '/gestoria/gestoria5.jpg',
+    badge: 'Más económico',
+  },
+
+  // --- COMPRAVENTA ESPECIAL ---
+  {
+    key: 'alquiler-opcion-compra',
+    name: 'Contrato de Alquiler con Opción a Compra',
+    shortName: 'Opción a Compra',
+    category: 'compraventa',
+    description: 'Contrato doble: alquila ahora y compra cuando quieras. El precio de compra queda fijado hoy y parte de las rentas se descuenta del precio final. Ideal si aún no tienes hipoteca.',
+    includes: [
+      'Arrendamiento + derecho de opción en un solo contrato',
+      'Precio fijado y descuento de rentas sobre compra final',
+      'Prima de opción y penalización por no ejercitar',
+      'Entrega en 48h · PDF firmable digitalmente',
+    ],
+    price: 150,
+    image: '/gestoria/gestoria4.jpg',
+    badge: 'Nuevo',
+  },
+
+  // --- FINANCIACIÓN ---
+  {
+    key: 'prestamo-particulares',
+    name: 'Contrato de Préstamo entre Particulares',
+    shortName: 'Préstamo Privado',
+    category: 'financiacion',
+    description: 'Formaliza el préstamo entre familiares, amigos o socios con plena validez jurídica y fiscal. Evita que Hacienda lo considere donación encubierta. Con o sin intereses.',
+    includes: [
+      'Importe, plazos y cuotas de devolución',
+      'Tipo de interés o préstamo a tipo 0 %',
+      'Nota fiscal: tributación correcta ante la AEAT',
+      'Entrega en 48h · PDF firmable digitalmente',
+    ],
+    price: 90,
+    image: '/gestoria/gestoria3.jpg',
+    badge: 'Capital privado',
+  },
 ]
 
 const CATEGORIES = [
@@ -183,18 +268,21 @@ const CATEGORIES = [
   { key: 'compraventa', label: 'Compraventa' },
   { key: 'alquiler', label: 'Alquiler' },
   { key: 'rescision', label: 'Rescisión y fianzas' },
+  { key: 'financiacion', label: 'Financiación' },
 ]
 
 const CATEGORY_COLORS: Record<string, string> = {
   compraventa: 'bg-orange-100 text-orange-700',
   alquiler: 'bg-purple-100 text-purple-700',
   rescision: 'bg-blue-100 text-blue-700',
+  financiacion: 'bg-green-100 text-green-700',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
   compraventa: 'Compraventa',
   alquiler: 'Alquiler',
   rescision: 'Rescisión',
+  financiacion: 'Financiación',
 }
 
 export default function GestoriaPage() {
@@ -476,12 +564,184 @@ export default function GestoriaPage() {
         </div>
       </section>
 
+      {/* BASES LEGALES */}
+      <section className="py-16 px-4 bg-white border-t border-gray-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="text-xs font-bold text-[#c9962a] uppercase tracking-widest">Marco jurídico</span>
+            <h2 className="text-2xl font-extrabold text-gray-900 mt-2">Bases legales que respaldamos</h2>
+            <p className="text-gray-500 mt-2 text-sm max-w-xl mx-auto">
+              Cada contrato que redactamos se sustenta en la legislación vigente. Conocer el marco legal es el primer paso para proteger tu operación.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              {
+                icon: '🏠',
+                titulo: 'Ley de Arrendamientos Urbanos (LAU)',
+                ley: 'Ley 29/1994 · Actualiz. 2023-2026',
+                desc: 'Regula el arrendamiento de vivienda habitual (Título II) y de uso distinto de vivienda como locales comerciales (Título III). Define duración mínima, prórrogas, actualización de renta y derechos del inquilino.',
+              },
+              {
+                icon: '🏛️',
+                titulo: 'Ley de Vivienda 2023',
+                ley: 'Ley 12/2023 · Vigente en 2026',
+                desc: 'Introduce límites a la actualización de renta en zonas tensionadas, define "gran tenedor" y establece nuevos derechos del inquilino en todo el territorio nacional. Todos nuestros contratos de alquiler incorporan sus disposiciones.',
+              },
+              {
+                icon: '⚖️',
+                titulo: 'Código Civil',
+                ley: 'Arts. 1254–1314 y 1542 ss.',
+                desc: 'Rige los contratos entre particulares no cubiertos por la LAU: alquiler de habitaciones, préstamos privados y contratos atípicos. Establece los principios de autonomía de la voluntad, obligaciones y consecuencias del incumplimiento.',
+              },
+              {
+                icon: '🤝',
+                titulo: 'Ley de Transmisiones Patrimoniales',
+                ley: 'Real Decreto Leg. 1/1993',
+                desc: 'Regula la tributación de los contratos de arras, arrendamientos y préstamos entre particulares. Los préstamos privados sin interés tributan por ITP a cuota cero pero deben declararse. Incluimos la nota fiscal en nuestros contratos de préstamo.',
+              },
+              {
+                icon: '🔏',
+                titulo: 'Reglamento Europeo de Firma Electrónica (eIDAS)',
+                ley: 'Reglamento UE 910/2014',
+                desc: 'Todos nuestros contratos se entregan en formato PDF firmable con firma electrónica simple o avanzada, con plena validez legal en toda la Unión Europea y ante los tribunales españoles.',
+              },
+              {
+                icon: '📜',
+                titulo: 'Ley de Propiedad Horizontal',
+                ley: 'Ley 49/1960 · Mod. 2022',
+                desc: 'Aplica en contratos que afectan a elementos comunes de comunidades de propietarios: garajes, trasteros, zonas comunes. Nuestros contratos respetan los estatutos de comunidad y la normativa interna aplicable.',
+              },
+            ].map(item => (
+              <div key={item.titulo} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 hover:border-[#f4c94a]/40 transition-colors">
+                <div className="text-2xl mb-3">{item.icon}</div>
+                <p className="text-[10px] font-bold text-[#c9962a] uppercase tracking-wider mb-1">{item.ley}</p>
+                <h3 className="font-bold text-gray-900 text-sm mb-2 leading-snug">{item.titulo}</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* QUIÉNES SOMOS — detallado */}
+      <section className="bg-[#fef9e8] py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            <div>
+              <span className="text-xs font-bold text-[#c9962a] uppercase tracking-widest">Quiénes somos</span>
+              <h2 className="text-2xl font-extrabold text-gray-900 mt-2 mb-4">
+                El servicio de gestoría<br />de Inmonest
+              </h2>
+              <p className="text-gray-600 leading-relaxed mb-5">
+                Inmonest nació como portal inmobiliario para particulares, y desde el primer día detectamos el mismo problema: propietarios e inquilinos firmando contratos descargados de internet sin ninguna supervisión jurídica. Contratos que luego generaban conflictos, pérdidas económicas y procesos judiciales evitables.
+              </p>
+              <p className="text-gray-600 leading-relaxed mb-6">
+                Por eso creamos la Gestoría Inmonest: un servicio de redacción de contratos inmobiliarios personalizados, revisados por abogados colegiados especializados en derecho inmobiliario español. No somos una plataforma de plantillas automáticas. Cada contrato lo redacta un profesional que conoce tu situación concreta.
+              </p>
+              <div className="space-y-3">
+                {[
+                  { icon: '🎓', text: 'Abogados colegiados con especialización en derecho inmobiliario' },
+                  { icon: '📍', text: 'Conocimiento de normativa autonómica: Cataluña, Madrid, Valencia, Andalucía...' },
+                  { icon: '🔄', text: 'Revisiones gratuitas dentro de los 7 días tras la entrega' },
+                  { icon: '📞', text: 'Consultas post-entrega incluidas sin coste adicional' },
+                  { icon: '🔐', text: 'Confidencialidad total: tus datos nunca se comparten con terceros' },
+                ].map(item => (
+                  <div key={item.text} className="flex items-start gap-3 text-sm text-gray-700">
+                    <span className="text-lg shrink-0 mt-0.5">{item.icon}</span>
+                    {item.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl p-6 border border-[#f4c94a]/30 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3 text-base">¿Por qué no usar una plantilla gratuita?</h3>
+                <div className="space-y-2">
+                  {[
+                    ['❌', 'Plantilla genérica', 'Sin adaptar a tu CCAA, situación ni partes concretas'],
+                    ['❌', 'Cláusulas nulas', 'Muchas plantillas incluyen cláusulas prohibidas por la LAU 2026'],
+                    ['❌', 'Sin actualización', 'La Ley de Vivienda cambia y las plantillas no se actualizan'],
+                    ['✅', 'Contrato Inmonest', 'Personalizado, actualizado y revisado por abogado colegiado'],
+                  ].map(([icon, titulo, desc]) => (
+                    <div key={titulo} className="flex items-start gap-2 text-sm">
+                      <span className="shrink-0 mt-0.5">{icon}</span>
+                      <div>
+                        <span className="font-semibold text-gray-800">{titulo}: </span>
+                        <span className="text-gray-600">{desc}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 border border-[#f4c94a]/30 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3 text-base">Proceso garantizado</h3>
+                <ol className="space-y-2">
+                  {[
+                    'Solicitas y facilitas los datos por email o formulario',
+                    'Asignamos tu contrato a un abogado especializado',
+                    'Revisión de nota simple registral si aplica',
+                    'Entrega del PDF personalizado en 24-48h',
+                    'Una ronda de revisiones gratuita si necesitas ajustes',
+                  ].map((step, i) => (
+                    <li key={step} className="flex items-start gap-3 text-sm text-gray-700">
+                      <span className="w-5 h-5 bg-[#c9962a] text-white rounded-full flex items-center justify-center shrink-0 text-xs font-bold mt-0.5">{i + 1}</span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* REGÍSTRATE — CTA */}
+      <section className="py-16 px-4 bg-white border-t border-gray-100">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-[#3d2a05] to-[#7a5c1e] rounded-3xl p-8 sm:p-12 text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#c9962a]/20 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+            <div className="relative">
+              <span className="inline-block bg-[#c9962a] text-white text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-5">
+                Clientes Inmonest
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3 max-w-lg">
+                Regístrate y gestiona todos<br />tus contratos desde un solo lugar
+              </h2>
+              <p className="text-white/80 mb-8 max-w-xl text-sm leading-relaxed">
+                Con una cuenta Inmonest puedes publicar tus anuncios, solicitar contratos con tus datos prefilled, hacer seguimiento del estado de cada servicio y acceder a tu historial de documentos en cualquier momento.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/login"
+                  className="px-6 py-3 bg-[#c9962a] text-white rounded-xl font-bold text-sm hover:bg-[#a87a20] transition-colors shadow-md"
+                >
+                  Crear cuenta gratis →
+                </Link>
+                <Link
+                  href="/login"
+                  className="px-6 py-3 bg-white/10 border border-white/20 text-white rounded-xl font-bold text-sm hover:bg-white/20 transition-colors"
+                >
+                  Ya tengo cuenta
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-x-8 gap-y-2 mt-8 text-xs text-white/60">
+                <span>✓ 2 anuncios gratis incluidos</span>
+                <span>✓ Historial de contratos</span>
+                <span>✓ Datos prefilled en formularios</span>
+                <span>✓ Sin permanencia</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA FINAL */}
       <section className="bg-gradient-to-r from-[#7a5c1e] to-[#c9962a] py-14 px-4">
         <div className="max-w-2xl mx-auto text-center text-white">
           <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">¿Listo para proteger tu operación?</h2>
           <p className="text-white/80 mb-6 text-base">
-            Desde 30 €. Sin letra pequeña. Sin plantillas genéricas. Con la firma de un profesional.
+            Desde 40 €. Sin letra pequeña. Sin plantillas genéricas. Con la firma de un profesional.
           </p>
           <button
             onClick={() => setSelectedService(SERVICES[0])}

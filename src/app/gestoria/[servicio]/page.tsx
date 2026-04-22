@@ -233,6 +233,271 @@ const SERVICIOS: Record<string, ServiceData> = {
       { slug: 'arras-confirmatorias', nombre: 'Arras Confirmatorias', precio: 120 },
     ],
   },
+
+  'alquiler-habitaciones': {
+    nombre: 'Contrato de Alquiler de Habitación',
+    precio: 100,
+    categoria: 'Alquiler',
+    tagline: 'Alquila habitaciones en piso compartido con todas las garantías jurídicas',
+    descripcion:
+      'El alquiler de habitaciones dentro de una vivienda no queda plenamente amparado por la LAU (que protege la vivienda habitual completa), sino que se rige por el Código Civil y los pactos entre las partes. Esa flexibilidad puede convertirse en un problema si el contrato no está bien redactado: convivencia conflictiva, disputas sobre zonas comunes, fianzas no devueltas o inquilinos que se niegan a marcharse. Nuestro equipo redacta contratos de habitación que regulan con precisión cada aspecto, protegiendo tanto al propietario como al inquilino desde el primer día.',
+    image: '/gestoria/gestoria6.jpg',
+    imageAlt: 'Contrato de alquiler de habitación en piso compartido',
+    paraQuien: [
+      'Propietarios que alquilan habitaciones de su vivienda habitual',
+      'Gestores de coliving o pisos compartidos con varios inquilinos',
+      'Inquilinos que quieren revisar condiciones antes de firmar',
+      'Situaciones de sustitución de habitante o incorporación de nuevo compañero',
+    ],
+    incluye: [
+      'Regulación de uso de zonas comunes (cocina, baño, salón)',
+      'Normas de convivencia y prohibiciones pactadas',
+      'Fianza, condiciones de devolución y estado inicial',
+      'Duración, prórrogas y condiciones de salida anticipada',
+      'Cláusula de sustitución de habitante si procede',
+      'Entrega en PDF firmable digitalmente en 48h',
+    ],
+    pasos: [
+      { num: '01', titulo: 'Solicita el contrato', desc: 'Facilita datos del propietario, inquilino, habitación y normas de la vivienda. El formulario es guiado y rápido.' },
+      { num: '02', titulo: 'Redacción personalizada', desc: 'Nuestros gestores adaptan el contrato a tu situación: número de habitantes, zonas comunes, duración pactada y fianza.' },
+      { num: '03', titulo: 'Listo para firmar', desc: 'Recibes el PDF en 48h, firmable digitalmente por todas las partes. Incluye inventario de la habitación como anexo.' },
+    ],
+    faq: [
+      {
+        q: '¿Los contratos de habitación se rigen por la LAU?',
+        a: 'No directamente. La LAU protege el arrendamiento de vivienda habitual completa. El alquiler de habitaciones se rige por el Código Civil (art. 1542 y siguientes) y los acuerdos entre partes, con más libertad pero también más riesgo sin contrato escrito.',
+      },
+      {
+        q: '¿Cuánta fianza debo pedir por una habitación?',
+        a: 'No hay mínimo legal fijado, pero lo habitual es una mensualidad. Nuestro contrato incluye la cláusula de fianza y el procedimiento de devolución para evitar conflictos al finalizar.',
+      },
+      {
+        q: '¿Puedo poner normas de convivencia en el contrato?',
+        a: 'Sí, y es muy recomendable. El contrato puede incluir normas sobre uso de zonas comunes, horarios de silencio, invitados, mascotas o limpieza. Todo lo que se regule en el contrato es exigible legalmente.',
+      },
+      {
+        q: '¿Qué ocurre si el inquilino se niega a marcharse?',
+        a: 'Sin contrato escrito, el proceso de desahucio es más complejo. Con nuestro contrato, la fecha de fin y las condiciones de salida quedan claras, lo que facilita enormemente cualquier reclamación legal.',
+      },
+    ],
+    relacionados: [
+      { slug: 'contrato-alquiler', nombre: 'Contrato de Alquiler LAU', precio: 90 },
+      { slug: 'alquiler-local-comercial', nombre: 'Alquiler Local Comercial', precio: 100 },
+      { slug: 'rescision-alquiler', nombre: 'Rescisión de Alquiler', precio: 60 },
+    ],
+  },
+
+  'alquiler-local-comercial': {
+    nombre: 'Contrato de Alquiler de Local Comercial',
+    precio: 100,
+    categoria: 'Alquiler',
+    tagline: 'Protege tu negocio con un contrato adaptado a la LAU empresarial',
+    descripcion:
+      'El alquiler de locales comerciales se rige por el Título III de la LAU (uso distinto de vivienda), donde la libertad de pactos entre las partes es mucho mayor que en el alquiler residencial. Sin embargo, esa libertad puede ser un arma de doble filo: sin cláusulas bien redactadas, el arrendatario puede quedarse sin derecho de traspaso, sin derecho de tanteo ante una venta, con rentas que escalan muy por encima del IPC o con obligaciones de obra injustas. Nuestro equipo jurídico protege tanto al propietario del local como al empresario que va a desarrollar allí su actividad.',
+    image: '/gestoria/gestoria2.jpg',
+    imageAlt: 'Firma de contrato de alquiler de local comercial',
+    paraQuien: [
+      'Propietarios de locales comerciales o bajos que quieren arrendar',
+      'Empresarios, autónomos y pymes que van a abrir un negocio',
+      'Operaciones con obras iniciales o adaptaciones del local',
+      'Arrendamientos con renta variable o ligada a facturación',
+    ],
+    incluye: [
+      'Régimen LAU para uso distinto de vivienda',
+      'Actualización de renta libre o por IPC según pacto',
+      'Régimen de obras, mejoras y estado inicial del local',
+      'Derecho de tanteo y retracto ante venta del local',
+      'Garantías adicionales (aval bancario, depósito)',
+      'Entrega en PDF firmable digitalmente en 48h',
+    ],
+    pasos: [
+      { num: '01', titulo: 'Solicita el contrato', desc: 'Facilita los datos del propietario, arrendatario, local y condiciones económicas. Incluye la actividad que vas a desarrollar.' },
+      { num: '02', titulo: 'Revisión por abogado', desc: 'Nuestros abogados verifican la compatibilidad del uso con la licencia, redactan el contrato y lo adaptan a las condiciones pactadas.' },
+      { num: '03', titulo: 'Entrega en 48h', desc: 'Recibes el PDF firmable con todas las cláusulas específicas para actividades comerciales. Sin letra pequeña.' },
+    ],
+    faq: [
+      {
+        q: '¿Cuánto tiempo dura mínimo un contrato de local comercial?',
+        a: 'No hay duración mínima legal para locales comerciales, a diferencia del alquiler de vivienda. La duración es la que acuerden las partes. Lo más habitual es 1 a 5 años con opción de prórroga.',
+      },
+      {
+        q: '¿Puede el arrendatario traspasar el negocio?',
+        a: 'Sí, salvo que el contrato lo prohíba expresamente. Si el contrato permite el traspaso, el propietario tiene derecho de tanteo (adquirirlo en iguales condiciones). Nuestro contrato regula este derecho con precisión.',
+      },
+      {
+        q: '¿Quién paga las obras del local?',
+        a: 'Depende de lo pactado. Es habitual que el inquilino realice obras de adaptación al inicio. Nuestro contrato regula quién paga las obras, si se amortiza en la renta y qué pasa con las mejoras al finalizar el contrato.',
+      },
+      {
+        q: '¿Puede el propietario subir la renta libremente?',
+        a: 'En locales comerciales, la actualización de renta es libre y se rige por lo pactado en el contrato. Si no se pacta nada, se aplica el IPC. Nuestro contrato especifica la fórmula exacta de actualización para evitar sorpresas.',
+      },
+    ],
+    relacionados: [
+      { slug: 'alquiler-habitaciones', nombre: 'Alquiler de Habitación', precio: 100 },
+      { slug: 'alquiler-garaje-trastero', nombre: 'Garaje o Trastero', precio: 40 },
+      { slug: 'rescision-alquiler', nombre: 'Rescisión de Alquiler', precio: 60 },
+    ],
+  },
+
+  'alquiler-opcion-compra': {
+    nombre: 'Contrato de Alquiler con Opción a Compra',
+    precio: 150,
+    categoria: 'Compraventa',
+    tagline: 'Alquila ahora, compra cuando quieras: el contrato más versátil del mercado',
+    descripcion:
+      'El alquiler con opción a compra es un contrato doble: por un lado regula el arrendamiento de la vivienda durante un período determinado; por otro, otorga al inquilino el derecho exclusivo e irrevocable de adquirirla en ese plazo a un precio previamente pactado, descontando todo o parte de las rentas abonadas. Es la solución ideal para compradores que aún no tienen financiación hipotecaria definitiva pero quieren asegurarse la propiedad, y para vendedores que quieren generar ingresos durante el proceso de venta sin renunciar a ella.',
+    image: '/gestoria/gestoria4.jpg',
+    imageAlt: 'Firma de contrato de alquiler con opción a compra',
+    paraQuien: [
+      'Futuros compradores que aún no tienen financiación aprobada',
+      'Vendedores que quieren ingresos por alquiler mientras no se cierra la venta',
+      'Familias que necesitan un período de adaptación antes de comprar',
+      'Operaciones donde se quiere asegurar el precio de compra futuro hoy',
+    ],
+    incluye: [
+      'Contrato de arrendamiento + derecho de opción integrados',
+      'Precio de compra fijado y plazo máximo para ejercitar la opción',
+      'Descuento de rentas en el precio final de compra',
+      'Prima de opción (señal) y condiciones de devolución',
+      'Penalización por no ejercitar la opción en plazo',
+      'Entrega en PDF firmable digitalmente en 48h',
+    ],
+    pasos: [
+      { num: '01', titulo: 'Solicita el contrato', desc: 'Facilita datos de comprador, vendedor, inmueble, renta mensual, precio de compra y plazo de la opción.' },
+      { num: '02', titulo: 'Revisión jurídica completa', desc: 'Nuestros abogados verifican la nota simple, redactan el doble contrato y calculan el descuento de rentas sobre el precio final.' },
+      { num: '03', titulo: 'Entrega en 48h', desc: 'Recibes el PDF con los dos contratos integrados (arrendamiento + opción), listo para firma digital de ambas partes.' },
+    ],
+    faq: [
+      {
+        q: '¿Puedo deducirme el alquiler del precio de compra?',
+        a: 'Sí, es una de las ventajas clave. El contrato puede establecer que el 100 % o un porcentaje pactado de cada mensualidad se descuente del precio final de compra. Nuestro contrato especifica exactamente la fórmula de descuento.',
+      },
+      {
+        q: '¿Qué pasa si decido no comprar al final?',
+        a: 'Pierdes la prima de opción (señal inicial pactada) pero no las rentas de alquiler. El arrendamiento continúa o finaliza según los términos del contrato. El vendedor recupera la plena disposición del inmueble.',
+      },
+      {
+        q: '¿El precio de compra puede cambiar durante el período de alquiler?',
+        a: 'No. Una vez firmado, el precio de compra queda fijado e inalterable. Esa certeza sobre el precio futuro es precisamente el valor de la opción de compra.',
+      },
+      {
+        q: '¿Necesito notario para ejercitar la opción de compra?',
+        a: 'Cuando llega el momento de comprar, sí es necesaria escritura notarial de compraventa, como en cualquier transmisión inmobiliaria. La opción en sí se ejerce mediante comunicación fehaciente al vendedor dentro del plazo pactado.',
+      },
+    ],
+    relacionados: [
+      { slug: 'arras-penitenciales', nombre: 'Arras Penitenciales', precio: 120 },
+      { slug: 'arras-confirmatorias', nombre: 'Arras Confirmatorias', precio: 120 },
+      { slug: 'contrato-alquiler', nombre: 'Contrato de Alquiler LAU', precio: 90 },
+    ],
+  },
+
+  'prestamo-particulares': {
+    nombre: 'Contrato de Préstamo entre Particulares',
+    precio: 90,
+    categoria: 'Financiación',
+    tagline: 'Formaliza el préstamo de capital privado con plena validez jurídica y fiscal',
+    descripcion:
+      'Un préstamo entre particulares —sea entre familiares, amigos o socios— sin contrato escrito puede convertirse en una fuente de conflictos devastadores: reclamaciones por incumplimiento sin pruebas, obligaciones fiscales incumplidas (Hacienda puede considerar el dinero como una donación encubierta sujeta al Impuesto de Donaciones), o disputas sobre intereses y plazos de devolución. Nuestro contrato regula el importe, los plazos, los intereses pactados y las consecuencias del impago, con plena validez ante juzgados y ante la Agencia Tributaria.',
+    image: '/gestoria/gestoria3.jpg',
+    imageAlt: 'Firma de contrato de préstamo entre particulares',
+    paraQuien: [
+      'Familiares o amigos que prestan o reciben dinero de forma privada',
+      'Inversores privados que financian proyectos o negocios',
+      'Préstamos para compra o reforma de inmueble entre conocidos',
+      'Comunidades de propietarios que necesitan financiación temporal',
+    ],
+    incluye: [
+      'Importe, plazos de devolución y cuotas detalladas',
+      'Tipo de interés remuneratorio o préstamo sin interés (0 %)',
+      'Cláusulas de vencimiento anticipado por impago',
+      'Garantías opcionales (aval personal, hipoteca, prenda)',
+      'Nota fiscal: tributación correcta ante la AEAT incluida',
+      'Entrega en PDF firmable digitalmente en 48h',
+    ],
+    pasos: [
+      { num: '01', titulo: 'Solicita el contrato', desc: 'Facilita los datos del prestamista, prestatario, importe, plazo e interés pactado. El formulario es guiado y confidencial.' },
+      { num: '02', titulo: 'Redacción y revisión fiscal', desc: 'Nuestros abogados redactan el contrato y verifican que el tratamiento fiscal sea correcto para ambas partes ante Hacienda.' },
+      { num: '03', titulo: 'Entrega en 48h', desc: 'Recibes el PDF con el contrato de préstamo, instrucciones de firma y nota fiscal con las obligaciones tributarias.' },
+    ],
+    faq: [
+      {
+        q: '¿Un préstamo entre familiares tiene que tributar?',
+        a: 'Sí. Hacienda puede considerarlo una donación encubierta y liquidar el Impuesto de Donaciones si no existe contrato escrito. Con nuestro contrato, el préstamo tributa correctamente por el Impuesto de Transmisiones Patrimoniales (cuota cero si es sin interés) y queda documentado para cualquier comprobación.',
+      },
+      {
+        q: '¿Puede ser un préstamo sin intereses?',
+        a: 'Sí, un préstamo a tipo 0 % es perfectamente válido jurídicamente. Hay que declararlo igualmente en la AEAT, pero no genera cuota a pagar. Nuestro contrato lo regula correctamente para que Hacienda no lo cuestione.',
+      },
+      {
+        q: '¿Qué pasa si el prestatario no devuelve el dinero?',
+        a: 'Con el contrato firmado tienes título ejecutivo para reclamar judicialmente. Puedes iniciar un procedimiento monitorio y, si no hay oposición, obtener embargo de bienes. Sin contrato escrito la reclamación es mucho más compleja.',
+      },
+      {
+        q: '¿Puedo incluir garantías adicionales como hipoteca o aval?',
+        a: 'Sí. El contrato puede incluir garantías personales (aval de un tercero), garantías reales (prenda sobre bienes muebles) o incluso hipoteca sobre inmueble si las partes lo acuerdan. Te informamos de la mejor opción según el importe.',
+      },
+    ],
+    relacionados: [
+      { slug: 'arras-penitenciales', nombre: 'Arras Penitenciales', precio: 120 },
+      { slug: 'alquiler-opcion-compra', nombre: 'Alquiler con Opción a Compra', precio: 150 },
+      { slug: 'contrato-alquiler', nombre: 'Contrato de Alquiler LAU', precio: 90 },
+    ],
+  },
+
+  'alquiler-garaje-trastero': {
+    nombre: 'Contrato de Alquiler de Garaje o Trastero',
+    precio: 40,
+    categoria: 'Alquiler',
+    tagline: 'El contrato más ágil y económico para alquilar tu plaza de garaje o trastero',
+    descripcion:
+      'El alquiler de garajes y trasteros está excluido del régimen de la LAU en sus aspectos de vivienda habitual, lo que significa que las partes tienen total libertad de pactos pero también más exposición a conflictos si no hay contrato escrito: uso del espacio, vehículos permitidos, responsabilidad por daños o robos, duración mínima y devolución de la fianza. Nuestro contrato es sencillo, económico y cubre todos los puntos que habitualmente generan disputas entre propietario e inquilino.',
+    image: '/gestoria/gestoria5.jpg',
+    imageAlt: 'Contrato de alquiler de plaza de garaje o trastero',
+    paraQuien: [
+      'Propietarios de plazas de garaje que quieren alquilarlas',
+      'Propietarios de trasteros o almacenes de uso privado',
+      'Comunidades de propietarios con espacios sin uso',
+      'Inquilinos que quieren garantías de uso exclusivo y devolución de fianza',
+    ],
+    incluye: [
+      'Descripción del espacio y vehículos u objetos permitidos',
+      'Duración, prórrogas y condiciones de salida anticipada',
+      'Fianza y procedimiento detallado de devolución',
+      'Responsabilidad por daños, robos y siniestros',
+      'Normas de acceso y uso del espacio común del garaje',
+      'Entrega en PDF firmable digitalmente en 24h',
+    ],
+    pasos: [
+      { num: '01', titulo: 'Solicita el contrato', desc: 'Facilita los datos del propietario, arrendatario, ubicación de la plaza o trastero y renta mensual. Solo 3 minutos.' },
+      { num: '02', titulo: 'Redacción en 24h', desc: 'Por la sencillez del contrato, nuestro equipo lo entrega en 24h. Incluye fianza, normas de uso y responsabilidad.' },
+      { num: '03', titulo: 'Firma digital', desc: 'Ambas partes firman el PDF digitalmente. Queda registro electrónico de la fecha y voluntad de las partes.' },
+    ],
+    faq: [
+      {
+        q: '¿Qué pasa si alguien daña mi vehículo en el garaje?',
+        a: 'Depende del tipo de garaje y del contrato de arrendamiento. Nuestro contrato incluye una cláusula de responsabilidad que especifica qué daños cubre el arrendador y cuáles son responsabilidad del arrendatario o del seguro correspondiente.',
+      },
+      {
+        q: '¿Es obligatorio pedir fianza por un garaje?',
+        a: 'No es obligatorio legalmente, pero es muy recomendable. Lo habitual es una mensualidad de renta. Nuestro contrato incluye la cláusula de fianza con plazo máximo de devolución.',
+      },
+      {
+        q: '¿Puedo alquilar una plaza de garaje que no tiene escritura propia?',
+        a: 'Sí. Muchas plazas son parte indivisible del inmueble principal. En ese caso, el contrato regula el derecho de uso de la plaza sin necesidad de que tenga referencia catastral independiente.',
+      },
+      {
+        q: '¿Qué ocurre si el inquilino del garaje no paga?',
+        a: 'Con contrato escrito puedes iniciar un procedimiento de desahucio o monitorio. Sin contrato, la reclamación es mucho más difícil. Por eso, incluso para importes pequeños, siempre recomendamos firmar.',
+      },
+    ],
+    relacionados: [
+      { slug: 'contrato-alquiler', nombre: 'Contrato de Alquiler LAU', precio: 90 },
+      { slug: 'alquiler-habitaciones', nombre: 'Alquiler de Habitación', precio: 100 },
+      { slug: 'rescision-alquiler', nombre: 'Rescisión de Alquiler', precio: 60 },
+    ],
+  },
 }
 
 export function generateStaticParams() {
