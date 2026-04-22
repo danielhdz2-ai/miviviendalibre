@@ -1,7 +1,8 @@
 {
   "functions": {
-    "src/app/api/gestoria/checkout/route.ts": { "maxDuration": 30 },
-    "src/app/api/stripe/checkout/route.ts":   { "maxDuration": 30 }
+    "src/app/api/gestoria/checkout/route.ts":          { "maxDuration": 30 },
+    "src/app/api/stripe/checkout/route.ts":            { "maxDuration": 30 },
+    "src/app/api/cron/generate-descriptions/route.ts": { "maxDuration": 60 }
   },
   "rewrites": [],
   "headers": [
@@ -36,6 +37,10 @@
     {
       "path": "/api/cron/alertas",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/generate-descriptions",
+      "schedule": "0 * * * *"
     }
   ]
 }

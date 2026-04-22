@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { generateAiDescription } from '@/lib/ai-description'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -66,6 +67,34 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // ── Genera descripción IA en background (sin bloquear respuesta) ───────────
+  const openrouterKey = process.env.OPENROUTER_API_KEY
+  if (openrouterKey && data?.id) {
+    const listingForAi = {
+      id: data.id,
+      title: String(title).trim(),
+      description: description ? String(description).trim() : null,
+      operation,
+      city: String(city).trim(),
+      district: district ? String(district).trim() : null,
+      province: (province || city).trim(),
+      price_eur: priceNum,
+      bedrooms: bedrooms !== '' && bedrooms != null ? parseInt(bedrooms) : null,
+      bathrooms: bathrooms !== '' && bathrooms != null ? parseInt(bathrooms) : null,
+      area_m2: area !== '' && area != null ? parseFloat(area) : null,
+    }
+    generateAiDescription(listingForAi, openrouterKey)
+      .then(async (aiDesc) => {
+        if (!aiDesc) return
+        const adminSb = await createClient()
+        await adminSb
+          .from('listings')
+          .update({ ai_description: aiDesc })
+          .eq('id', data.id)
+      })
+      .catch(() => { /* silencioso: el cron lo reintentará */ })
   }
 
   return NextResponse.json({ id: data.id })
