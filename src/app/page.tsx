@@ -247,6 +247,50 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Blog inmobiliario ─────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div className="relative overflow-hidden rounded-3xl shadow-xl bg-[#0d1a0f] min-h-[300px] flex">
+          {/* Columna izquierda — imagen */}
+          <div className="hidden lg:block relative w-[420px] shrink-0">
+            <Image
+              src="/familia20.jpg"
+              alt="Familia feliz en su nuevo hogar"
+              fill
+              className="object-cover object-center"
+              sizes="420px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#0d1a0f]/20 to-[#0d1a0f]" />
+          </div>
+
+          {/* Columna derecha — texto */}
+          <div className="relative z-10 flex flex-col justify-center px-8 sm:px-12 py-12 flex-1">
+            <span className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-full bg-[#c9962a]/25 text-[#f4c94a] text-xs font-semibold border border-[#c9962a]/40 mb-5">
+              📰 Blog Inmobiliario
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-snug">
+              Guías y consejos<br /><span className="text-[#f4c94a]">para propietarios</span>
+            </h2>
+            <p className="mt-3 text-white/65 text-sm sm:text-base leading-relaxed max-w-sm">
+              Contratos, arras, alquiler sin agencia, fondos bancarios, préstamos privados... Todo lo que necesitas saber para tomar decisiones inteligentes.
+            </p>
+            <div className="mt-7 flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/blog"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#c9962a] text-white font-semibold hover:bg-[#a87a20] transition-colors text-sm shadow-lg shadow-[#c9962a]/40"
+              >
+                Leer guías →
+              </Link>
+              <Link
+                href="/gestoria"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/25 text-white/80 font-medium hover:bg-white/10 transition-colors text-sm"
+              >
+                Ver contratos
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
     </div>
   )

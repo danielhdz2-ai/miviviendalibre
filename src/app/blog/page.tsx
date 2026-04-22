@@ -28,6 +28,69 @@ const ARTICULOS = [
     categoria: 'Venta',
     lectura: '8 min',
   },
+  {
+    slug: 'contrato-arras-diferencias',
+    titulo: 'Arras penitenciales vs confirmatorias: ¿cuál te conviene en tu compraventa?',
+    resumen:
+      'Descubre las diferencias clave entre los dos tipos de arras, cuándo usar cada uno y qué consecuencias tiene para comprador y vendedor si alguien se echa atrás.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Compraventa',
+    lectura: '6 min',
+  },
+  {
+    slug: 'como-alquilar-piso-sin-agencia',
+    titulo: 'Cómo alquilar tu piso sin agencia en 2026: guía paso a paso para propietarios',
+    resumen:
+      'Publicar, seleccionar inquilino, fijar precio, redactar el contrato y depositar la fianza. Todo lo que necesitas para alquilar sin pagar comisión a ninguna agencia.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Alquiler',
+    lectura: '7 min',
+  },
+  {
+    slug: 'contrato-alquiler-vivienda-guia',
+    titulo: 'Contrato de alquiler 2026: qué tiene que incluir para ser válido y protegerte',
+    resumen:
+      'La Ley de Vivienda 2023 cambió muchas reglas. Descubre qué cláusulas son obligatorias, cuáles están prohibidas y qué pasa si firmas un contrato con errores.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Alquiler',
+    lectura: '8 min',
+  },
+  {
+    slug: 'alquiler-habitacion-coliving',
+    titulo: 'Alquilar una habitación en 2026: contrato, fianza y derechos del propietario',
+    resumen:
+      'El alquiler de habitaciones no lo cubre la LAU. Aprende qué ley aplica, cómo redactar el contrato y qué normas de convivencia puedes incluir legalmente.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Alquiler',
+    lectura: '5 min',
+  },
+  {
+    slug: 'alquiler-con-opcion-a-compra',
+    titulo: 'Alquiler con opción a compra: ventajas, riesgos y cómo funciona en España',
+    resumen:
+      'Alquilas hoy, compras cuando quieras. Te explicamos cómo funciona, qué descuenta de la futura compra, cuándo te conviene y cómo redactar el contrato correctamente.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Compraventa',
+    lectura: '6 min',
+  },
+  {
+    slug: 'prestamo-entre-particulares-hacienda',
+    titulo: 'Préstamo entre familiares: cómo formalizarlo y declararlo ante Hacienda',
+    resumen:
+      'Un préstamo sin contrato entre familiares puede convertirse en una donación sujeta a impuestos. Aprende a hacerlo bien: ITP, modelo 600 y documentación mínima.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Financiación',
+    lectura: '7 min',
+  },
+  {
+    slug: 'pisos-fondo-bancario-baratos',
+    titulo: 'Pisos de fondo bancario baratos: cómo encontrarlos y qué tener en cuenta',
+    resumen:
+      'Solvia, Aliseda, Servihabitat... Los bancos tienen miles de pisos entre 40.000 € y 150.000 €. Te explicamos cómo acceder, negociar precio y qué revisar antes de comprar.',
+    fecha: '22 de abril de 2026',
+    categoria: 'Compra',
+    lectura: '6 min',
+  },
 ]
 
 export default function BlogPage() {
