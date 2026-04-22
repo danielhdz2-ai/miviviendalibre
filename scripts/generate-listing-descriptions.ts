@@ -34,8 +34,9 @@ if (!OPENROUTER_KEY) {
 }
 
 const EXECUTE    = process.argv.includes('--execute')
-const BATCH_SIZE = 20   // listings por ejecución
-const DELAY_MS   = 500  // ms entre llamadas
+const RUN_ALL    = process.argv.includes('--all')   // procesa todos los pendientes en loop
+const BATCH_SIZE = RUN_ALL ? 50 : 20  // más grande en modo --all
+const DELAY_MS   = RUN_ALL ? 200 : 500  // más rápido en modo --all
 const OR_MODEL   = 'google/gemini-2.0-flash-lite-001'
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
@@ -129,73 +130,125 @@ async function main() {
   console.log(`🤖 Generate Listing Descriptions — modo: ${EXECUTE ? 'EXECUTE' : 'DRY RUN'}`)
   console.log(`   Batch: ${BATCH_SIZE} listings | Delay: ${DELAY_MS}ms entre llamadas\n`)
 
-  // Busca listings sin ai_description
-  const { data: listings, error } = await sb
+  // Conteo total de pendientes
+  const { count: totalPending } = await sb
     .from('listings')
-    .select('id, title, description, operation, city, district, province, price_eur, bedrooms, bathrooms, area_m2')
+    .select('*', { count: 'exact', head: true })
     .eq('status', 'published')
     .or('ai_description.is.null,ai_description.eq.')
-    .order('created_at', { ascending: false })
-    .limit(BATCH_SIZE)
+  const { count: totalDone } = await sb
+    .from('listings')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'published')
+    .not('ai_description', 'is', null)
+  console.log(`📊 Total publicados con descripción IA: ${totalDone ?? 0}`)
+  console.log(`⏳ Total pendientes: ${totalPending ?? 0}`)
+  console.log(`   Batches restantes: ~${Math.ceil((totalPending ?? 0) / BATCH_SIZE)}\n`)
 
-  if (error) {
-    console.error('❌ Error al leer listings:', error.message)
-    process.exit(1)
-  }
+  if (process.argv.includes('--count-only')) return
 
-  if (!listings || listings.length === 0) {
-    console.log('✅ No hay listings sin ai_description. Todo está al día.')
-    return
-  }
+  let totalOk = 0, totalFail = 0, batchNum = 0
 
-  console.log(`📋 Listings a procesar: ${listings.length}\n`)
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    batchNum++
+    if (RUN_ALL) process.stdout.write(`\n⏩ Batch #${batchNum}… `)
 
-  let ok = 0, skip = 0, fail = 0
+    // Busca listings sin ai_description
+    const { data: listings, error } = await sb
+      .from('listings')
+      .select('id, title, description, operation, city, district, province, price_eur, bedrooms, bathrooms, area_m2')
+      .eq('status', 'published')
+      .or('ai_description.is.null,ai_description.eq.')
+      .order('created_at', { ascending: false })
+      .limit(BATCH_SIZE)
 
-  for (const listing of listings as Listing[]) {
-    const shortTitle = (listing.title ?? listing.id).slice(0, 60)
-    process.stdout.write(`  → [${listing.id}] ${shortTitle}… `)
-
-    const description = await generateDescription(listing)
-
-    if (!description) {
-      console.log('❌ SKIP (sin respuesta)')
-      fail++
-      await sleep(DELAY_MS)
-      continue
+    if (error) {
+      console.error('❌ Error al leer listings:', error.message)
+      process.exit(1)
     }
 
-    const wordCount = description.split(/\s+/).length
-    console.log(`✓ ${wordCount} palabras`)
+    if (!listings || listings.length === 0) {
+      console.log('\n✅ No hay más listings sin ai_description. ¡Todo al día!')
+      break
+    }
 
-    if (EXECUTE) {
-      const { error: updateError } = await sb
-        .from('listings')
-        .update({ ai_description: description })
-        .eq('id', listing.id)
+    if (RUN_ALL) console.log(`${listings.length} listings`)
+    else console.log(`📋 Listings a procesar: ${listings.length}\n`)
 
-      if (updateError) {
-        console.warn(`    ⚠️  No se pudo guardar: ${updateError.message}`)
+    let ok = 0, skip = 0, fail = 0
+
+    for (const listing of listings as Listing[]) {
+      const shortTitle = (listing.title ?? listing.id).slice(0, 60)
+      if (!RUN_ALL) process.stdout.write(`  → [${listing.id}] ${shortTitle}… `)
+
+      const description = await generateDescription(listing)
+
+      if (!description) {
+        if (!RUN_ALL) console.log('❌ SKIP (sin respuesta)')
         fail++
-      } else {
-        ok++
+        await sleep(DELAY_MS)
+        continue
       }
-    } else {
-      console.log(`    Preview: "${description.slice(0, 100)}…"`)
-      skip++
+
+      const wordCount = description.split(/\s+/).length
+      if (!RUN_ALL) console.log(`✓ ${wordCount} palabras`)
+
+      if (EXECUTE) {
+        const { error: updateError } = await sb
+          .from('listings')
+          .update({ ai_description: description })
+          .eq('id', listing.id)
+
+        if (updateError) {
+          if (!RUN_ALL) console.warn(`    ⚠️  No se pudo guardar: ${updateError.message}`)
+          fail++
+        } else {
+          ok++
+        }
+      } else {
+        if (!RUN_ALL) console.log(`    Preview: "${description.slice(0, 100)}…"`)
+        skip++
+      }
+
+      await sleep(DELAY_MS)
     }
 
-    await sleep(DELAY_MS)
+    totalOk   += ok
+    totalFail += fail
+
+    if (RUN_ALL && EXECUTE) {
+      const { count: remaining } = await sb
+        .from('listings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'published')
+        .or('ai_description.is.null,ai_description.eq.')
+      process.stdout.write(`   ✅ +${ok} guardados (total: ${totalOk}) | ⏳ quedan: ${remaining ?? '?'}\r`)
+    }
+
+    // Si no estamos en modo --all, salir tras el primer batch
+    if (!RUN_ALL) {
+      console.log(`\n📊 Resultado:`)
+      if (EXECUTE) {
+        console.log(`   ✅ Guardados: ${ok}`)
+        console.log(`   ❌ Errores:  ${fail}`)
+        console.log(`\n   Vuelve a ejecutar para procesar el siguiente batch de ${BATCH_SIZE}.`)
+      } else {
+        console.log(`   📝 Preview (dry run): ${skip} listings`)
+        console.log(`\n   Ejecuta con --execute para guardar en la BD.`)
+      }
+      break
+    }
+
+    // En dry run + --all, solo mostramos el primer batch
+    if (!EXECUTE) {
+      console.log(`\n   (--all en dry run solo muestra el primer batch. Añade --execute para guardar todo.)`)
+      break
+    }
   }
 
-  console.log(`\n📊 Resultado:`)
-  if (EXECUTE) {
-    console.log(`   ✅ Guardados: ${ok}`)
-    console.log(`   ❌ Errores:  ${fail}`)
-    console.log(`\n   Vuelve a ejecutar para procesar el siguiente batch de ${BATCH_SIZE}.`)
-  } else {
-    console.log(`   📝 Preview (dry run): ${skip} listings`)
-    console.log(`\n   Ejecuta con --execute para guardar en la BD.`)
+  if (RUN_ALL && EXECUTE) {
+    console.log(`\n\n🎉 Proceso completo: ${totalOk} descripciones generadas, ${totalFail} errores.`)
   }
 }
 

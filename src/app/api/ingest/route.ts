@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { detectParticular } from '@/lib/detect-particular'
+import { generateAiDescription } from '@/lib/ai-description'
 
 interface IngestItem {
   source: string
@@ -98,6 +99,22 @@ export async function POST(req: NextRequest) {
               position: 0,
             })
           }
+        }
+      }
+      // Genera descripción IA en background para el listing recién insertado
+      if (process.env.OPENROUTER_API_KEY) {
+        const { data: newRow } = await supabase
+          .from('listings')
+          .select('id, title, description, operation, city, district, province, price_eur, bedrooms, bathrooms, area_m2')
+          .eq('source_external_id', item.external_id)
+          .is('ai_description', null)
+          .single()
+        if (newRow) {
+          void generateAiDescription(newRow, process.env.OPENROUTER_API_KEY).then(async (desc) => {
+            if (desc) {
+              await supabase.from('listings').update({ ai_description: desc }).eq('id', newRow.id)
+            }
+          })
         }
       }
       inserted++
