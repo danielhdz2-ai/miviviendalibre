@@ -1,7 +1,7 @@
 /**
  * generate-listing-descriptions.ts
  *
- * Genera descripciones únicas con Gemini para listings activos que no tengan
+ * Genera descripciones únicas con OpenRouter para listings activos que no tengan
  * ai_description todavía. Las guarda en la columna `ai_description`.
  *
  * Uso:
@@ -14,33 +14,31 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { config } from 'dotenv'
 import { resolve } from 'path'
 
 // ── Carga .env.local ─────────────────────────────────────────────────────────
 config({ path: resolve(process.cwd(), '.env.local') })
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-const GEMINI_KEY   = process.env.GEMINI_API_KEY ?? ''
+const SUPABASE_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const SUPABASE_KEY    = process.env.SUPABASE_SERVICE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+const OPENROUTER_KEY  = process.env.OPENROUTER_API_KEY ?? ''
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('❌ Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_KEY en .env.local')
   process.exit(1)
 }
-if (!GEMINI_KEY) {
-  console.error('❌ Falta GEMINI_API_KEY en .env.local')
+if (!OPENROUTER_KEY) {
+  console.error('❌ Falta OPENROUTER_API_KEY en .env.local')
   process.exit(1)
 }
 
 const EXECUTE    = process.argv.includes('--execute')
 const BATCH_SIZE = 20   // listings por ejecución
-const DELAY_MS   = 600  // ms entre llamadas a Gemini (evitar rate limit)
+const DELAY_MS   = 500  // ms entre llamadas
+const OR_MODEL   = 'google/gemini-2.0-flash-lite-001'
 
-const sb    = createClient(SUPABASE_URL, SUPABASE_KEY)
-const genAI = new GoogleGenerativeAI(GEMINI_KEY)
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 interface Listing {
@@ -89,16 +87,36 @@ Requisitos:
 Responde SOLO con el texto de la descripción, sin comillas ni explicaciones.`
 }
 
-// ── Llama a Gemini ────────────────────────────────────────────────────────────
+// ── Llama a OpenRouter ───────────────────────────────────────────────────────
 async function generateDescription(listing: Listing): Promise<string | null> {
   try {
     const prompt = buildPrompt(listing)
-    const result = await model.generateContent(prompt)
-    const text   = result.response.text().trim()
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://inmonest.com',
+        'X-Title': 'Inmonest',
+      },
+      body: JSON.stringify({
+        model: OR_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 300,
+        temperature: 0.7,
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      console.warn(`  ⚠️  OpenRouter ${res.status} para ${listing.id}:`, err.slice(0, 200))
+      return null
+    }
+    const json = await res.json() as { choices?: { message?: { content?: string } }[] }
+    const text = json.choices?.[0]?.message?.content?.trim() ?? ''
     if (!text || text.length < 50) return null
     return text
   } catch (err) {
-    console.warn(`  ⚠️  Gemini error para ${listing.id}:`, (err as Error).message)
+    console.warn(`  ⚠️  Error para ${listing.id}:`, (err as Error).message)
     return null
   }
 }
