@@ -56,6 +56,29 @@ export async function PATCH(req: NextRequest, { params }: Props) {
   if (body.description !== undefined) {
     allowedFields.description = String(body.description).trim().slice(0, 3000)
   }
+  if (body.bedrooms !== undefined) {
+    const n = Number(body.bedrooms)
+    if (!isNaN(n) && n >= 0 && n <= 20) allowedFields.bedrooms = n
+  }
+  if (body.bathrooms !== undefined) {
+    const n = Number(body.bathrooms)
+    if (!isNaN(n) && n >= 0 && n <= 10) allowedFields.bathrooms = n
+  }
+  if (body.area_m2 !== undefined) {
+    const n = Number(body.area_m2)
+    if (!isNaN(n) && n > 0 && n <= 9999) allowedFields.area_m2 = n
+  }
+  if (body.city !== undefined) {
+    allowedFields.city = String(body.city).trim().slice(0, 100)
+  }
+  if (body.district !== undefined) {
+    allowedFields.district = String(body.district).trim().slice(0, 100) || null
+  }
+  if (body.operation !== undefined) {
+    if (['sale', 'rent'].includes(body.operation as string)) {
+      allowedFields.operation = body.operation
+    }
+  }
 
   if (Object.keys(allowedFields).length === 0) {
     return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 })

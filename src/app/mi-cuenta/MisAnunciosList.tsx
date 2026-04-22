@@ -111,6 +111,13 @@ export default function MisAnunciosList({ anuncios }: { anuncios: Anuncio[] }) {
                 Ver
               </Link>
 
+              <Link
+                href={`/mi-cuenta/anuncios/${a.id}/editar`}
+                className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-[#c9962a] hover:text-[#c9962a] hover:bg-[#fef9e8] transition-colors"
+              >
+                Editar
+              </Link>
+
               {/* Botón Turbo */}
               {a.status === 'published' && (
                 isTurboActive ? (

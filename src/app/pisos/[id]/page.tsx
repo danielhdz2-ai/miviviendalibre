@@ -289,6 +289,14 @@ export default async function ListingDetailPage({ params, searchParams }: Props)
               </div>
             )}
 
+            {/* Descripción IA */}
+            {listing.ai_description && (
+              <div className="bg-[#fef9e8] rounded-2xl p-5 border border-[#f4c94a]/30">
+                <p className="text-xs font-bold text-[#a87a20] uppercase tracking-wider mb-3">✨ Análisis del anuncio</p>
+                <DescriptionExpand text={listing.ai_description} />
+              </div>
+            )}
+
             {/* Características — sin bordes de caja, solo separador */}
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-6">Características</h2>
