@@ -40,7 +40,7 @@
     },
     {
       "path": "/api/cron/generate-descriptions",
-      "schedule": "0 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
