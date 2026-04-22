@@ -53,6 +53,7 @@ jobs:
     name: "🏢 [Tecnocasa] ${{ matrix.city }} — ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'tecnocasa' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -102,6 +103,7 @@ jobs:
     name: "🏢 [Redpiso] ${{ matrix.city }} — ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'redpiso' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -151,6 +153,7 @@ jobs:
     name: "🏢 [Monapart] ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'monapart' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -197,6 +200,7 @@ jobs:
     name: "🏢 [pisos.com] ${{ matrix.city }} — ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'pisoscom' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -231,6 +235,7 @@ jobs:
     name: "🏢 [Gilmar] ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'gilmar' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -267,6 +272,7 @@ jobs:
     name: "🏦 [Solvia] ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'solvia' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -298,6 +304,7 @@ jobs:
     name: "🏦 [Aliseda] ${{ matrix.operation }}"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'aliseda' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -347,6 +354,7 @@ jobs:
     name: "🏠 [Particulares pisos.com] ${{ matrix.city }} — Venta"
     if: ${{ inputs.scraper == 'pisoscom_particulares' }}   # ⚠️ PAUSADO: solo manual
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -379,6 +387,7 @@ jobs:
     name: "🔥 [Milanuncios] ${{ matrix.city }} — Venta"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'milanuncios_particulares' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -425,6 +434,7 @@ jobs:
     name: "🏠 [Fotocasa] ${{ matrix.city }} — Venta"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'fotocasa_particulares' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -471,6 +481,7 @@ jobs:
     name: "🏠 [Habitaclia] ${{ matrix.city }} — Venta"
     if: ${{ github.event_name == 'schedule' || inputs.scraper == 'all' || inputs.scraper == 'habitaclia_particulares' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     strategy:
       fail-fast: false
