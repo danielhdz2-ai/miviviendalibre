@@ -1,4 +1,4 @@
-﻿'use client'
+?'use client'
 
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -19,31 +19,31 @@ interface FormData {
   features: string[]
 }
 
-const STEPS = ['OperaciÃ³n', 'UbicaciÃ³n', 'CaracterÃ­sticas', 'Extras y fotos']
+const STEPS = ['Operación', 'Ubicación', 'Características', 'Extras y fotos']
 
 const CIUDADES = [
   'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza',
-  'MÃ¡laga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao',
-  'Alicante', 'CÃ³rdoba', 'Valladolid', 'Vigo', 'GijÃ³n',
-  'Granada', 'Hospitalet', 'La CoruÃ±a', 'Vitoria', 'Elche',
+  'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao',
+  'Alicante', 'Córdoba', 'Valladolid', 'Vigo', 'Gijón',
+  'Granada', 'Hospitalet', 'La Coruña', 'Vitoria', 'Elche',
 ]
 
 const AMENITIES = [
-  { key: 'ascensor',           label: 'Ascensor',              emoji: 'ðŸ›—' },
-  { key: 'terraza',            label: 'Terraza',               emoji: 'ðŸŒ¿' },
-  { key: 'garaje',             label: 'Garaje',                emoji: 'ðŸš—' },
-  { key: 'piscina',            label: 'Piscina',               emoji: 'ðŸŠ' },
-  { key: 'trastero',           label: 'Trastero',              emoji: 'ðŸ“¦' },
-  { key: 'jardin',             label: 'JardÃ­n',                emoji: 'ðŸŒ³' },
-  { key: 'aire_acondicionado', label: 'Aire acondicionado',    emoji: 'â„ï¸' },
-  { key: 'armarios_empotrados',label: 'Armarios empotrados',   emoji: 'ðŸšª' },
-  { key: 'exterior',           label: 'Exterior',              emoji: 'â˜€ï¸' },
-  { key: 'amueblado',          label: 'Amueblado',             emoji: 'ðŸ›‹ï¸' },
-  { key: 'calefaccion',        label: 'CalefacciÃ³n',           emoji: 'ðŸ”¥' },
-  { key: 'portero_automatico', label: 'Portero automÃ¡tico',    emoji: 'ðŸ””' },
+  { key: 'ascensor',           label: 'Ascensor',              emoji: '🛗' },
+  { key: 'terraza',            label: 'Terraza',               emoji: '🌿' },
+  { key: 'garaje',             label: 'Garaje',                emoji: '🚗' },
+  { key: 'piscina',            label: 'Piscina',               emoji: '🏊' },
+  { key: 'trastero',           label: 'Trastero',              emoji: '📦' },
+  { key: 'jardin',             label: 'Jardín',                emoji: '🌳' },
+  { key: 'aire_acondicionado', label: 'Aire acondicionado',    emoji: '❄️' },
+  { key: 'armarios_empotrados',label: 'Armarios empotrados',   emoji: '🚪' },
+  { key: 'exterior',           label: 'Exterior',              emoji: '☀️' },
+  { key: 'amueblado',          label: 'Amueblado',             emoji: '🛋️' },
+  { key: 'calefaccion',        label: 'Calefacción',           emoji: '🔥' },
+  { key: 'portero_automatico', label: 'Portero automático',    emoji: '🔔' },
 ]
 
-// â”€â”€ WebP compression via Canvas API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── WebP compression via Canvas API ─────────────────────────────────────────
 async function compressToWebP(file: File, maxWidth = 1400, quality = 0.82): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -118,7 +118,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
     const hab    = form.bedrooms === '0' ? 'Estudio' : `Piso ${form.bedrooms} hab.`
     const ciudad = form.city ? ` en ${form.city}` : ''
     const dist   = form.district ? `, ${form.district}` : ''
-    return `${hab}${ciudad}${dist} â€” propietario, sin comisiÃ³n`
+    return `${hab}${ciudad}${dist} — propietario, sin comisión`
   }
 
   const handleGenerateAI = async () => {
@@ -239,10 +239,10 @@ export default function PublicarWizard({ userId }: { userId: string }) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* TÃ­tulo */}
+      {/* Título */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-[#7a5c1e] mb-2">Publica tu anuncio</h1>
-        <p className="text-[#9c7a3c]">Gratis Â· Sin comisiones Â· Trato directo</p>
+        <p className="text-[#9c7a3c]">Gratis · Sin comisiones · Trato directo</p>
       </div>
 
       {/* Indicadores de paso */}
@@ -259,7 +259,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                   active ? 'bg-[#c9962a] text-white ring-4 ring-[#f4c94a]/40' :
                   'bg-[#f4c94a]/30 text-[#9c7a3c]'
                 }`}>
-                  {done ? 'âœ“' : n}
+                  {done ? '✓' : n}
                 </div>
                 <span className={`text-xs hidden sm:block ${active ? 'text-[#c9962a] font-semibold' : 'text-[#9c7a3c]'}`}>
                   {label}
@@ -276,14 +276,14 @@ export default function PublicarWizard({ userId }: { userId: string }) {
       {/* Tarjeta */}
       <div className="bg-white rounded-2xl shadow-sm border border-[#f4c94a]/30 p-8">
 
-        {/* Paso 1: OperaciÃ³n */}
+        {/* Paso 1: Operación */}
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">Â¿QuÃ© quieres hacer?</h2>
+            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">¿Qué quieres hacer?</h2>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { value: 'rent', label: 'Alquilar', desc: 'Pongo mi piso en alquiler', emoji: 'ðŸ ' },
-                { value: 'sale', label: 'Vender',   desc: 'Quiero vender mi propiedad', emoji: 'ðŸ”‘' },
+                { value: 'rent', label: 'Alquilar', desc: 'Pongo mi piso en alquiler', emoji: '🏠' },
+                { value: 'sale', label: 'Vender',   desc: 'Quiero vender mi propiedad', emoji: '🔑' },
               ].map(opt => (
                 <button
                   key={opt.value}
@@ -303,10 +303,10 @@ export default function PublicarWizard({ userId }: { userId: string }) {
           </div>
         )}
 
-        {/* Paso 2: UbicaciÃ³n y precio */}
+        {/* Paso 2: Ubicación y precio */}
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">UbicaciÃ³n y precio</h2>
+            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">Ubicación y precio</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -327,14 +327,14 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                   <input
                     value={form.district}
                     onChange={e => set('district', e.target.value)}
-                    placeholder="MalasaÃ±a, GrÃ cia..."
+                    placeholder="Malasaña, Gràcia..."
                     className={inputCls}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#7a5c1e] mb-1">CÃ³digo postal</label>
+                  <label className="block text-sm font-medium text-[#7a5c1e] mb-1">Código postal</label>
                   <input
                     value={form.postal_code}
                     onChange={e => set('postal_code', e.target.value)}
@@ -345,7 +345,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#7a5c1e] mb-1">
-                    Precio {form.operation === 'rent' ? '(â‚¬/mes) *' : '(â‚¬) *'}
+                    Precio {form.operation === 'rent' ? '(€/mes) *' : '(€) *'}
                   </label>
                   <input
                     type="number"
@@ -361,10 +361,10 @@ export default function PublicarWizard({ userId }: { userId: string }) {
           </div>
         )}
 
-        {/* Paso 3: CaracterÃ­sticas */}
+        {/* Paso 3: Características */}
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">CaracterÃ­sticas</h2>
+            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">Características</h2>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-[#7a5c1e] mb-2">Habitaciones</label>
@@ -377,7 +377,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#7a5c1e] mb-2">BaÃ±os</label>
+                <label className="block text-sm font-medium text-[#7a5c1e] mb-2">Baños</label>
                 <div className="flex gap-2">
                   {['1','2','3','4'].map(n => (
                     <button key={n} onClick={() => set('bathrooms', n)} className={pill(form.bathrooms === n)}>
@@ -387,7 +387,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#7a5c1e] mb-1">Superficie (mÂ²)</label>
+                <label className="block text-sm font-medium text-[#7a5c1e] mb-1">Superficie (m²)</label>
                 <input
                   type="number"
                   value={form.area}
@@ -401,10 +401,10 @@ export default function PublicarWizard({ userId }: { userId: string }) {
           </div>
         )}
 
-        {/* Paso 4: Extras, descripciÃ³n y fotos */}
+        {/* Paso 4: Extras, descripción y fotos */}
         {step === 4 && (
           <div>
-            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">Extras, descripciÃ³n y fotos</h2>
+            <h2 className="text-xl font-bold text-[#7a5c1e] mb-6">Extras, descripción y fotos</h2>
             <div className="space-y-6">
 
               {/* Amenities */}
@@ -428,16 +428,16 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                       >
                         <span>{emoji}</span>
                         <span>{label}</span>
-                        {active && <span className="ml-auto text-[#c9962a] text-xs">âœ“</span>}
+                        {active && <span className="ml-auto text-[#c9962a] text-xs">✓</span>}
                       </button>
                     )
                   })}
                 </div>
               </div>
 
-              {/* TÃ­tulo */}
+              {/* Título */}
               <div>
-                <label className="block text-sm font-medium text-[#7a5c1e] mb-1">TÃ­tulo del anuncio</label>
+                <label className="block text-sm font-medium text-[#7a5c1e] mb-1">Título del anuncio</label>
                 <input
                   value={form.title}
                   onChange={e => set('title', e.target.value)}
@@ -445,13 +445,13 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                   maxLength={120}
                   className={inputCls}
                 />
-                <p className="text-xs text-[#9c7a3c] mt-1">Si lo dejas vacÃ­o se usarÃ¡ el tÃ­tulo sugerido</p>
+                <p className="text-xs text-[#9c7a3c] mt-1">Si lo dejas vacío se usará el título sugerido</p>
               </div>
 
-              {/* DescripciÃ³n + IA */}
+              {/* Descripción + IA */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-[#7a5c1e]">DescripciÃ³n</label>
+                  <label className="block text-sm font-medium text-[#7a5c1e]">Descripción</label>
                   <button
                     type="button"
                     onClick={handleGenerateAI}
@@ -466,13 +466,13 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                         </svg>
                         Generando...
                       </>
-                    ) : 'âœ¨ Generar con IA'}
+                    ) : '✨ Generar con IA'}
                   </button>
                 </div>
                 <textarea
                   value={form.description}
                   onChange={e => set('description', e.target.value)}
-                  placeholder="Describe tu propiedad: estado, reformas, orientaciÃ³n, transporte cercano..."
+                  placeholder="Describe tu propiedad: estado, reformas, orientación, transporte cercano..."
                   rows={4}
                   maxLength={2000}
                   className="w-full border border-[#f4c94a]/60 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#c9962a] focus:ring-1 focus:ring-[#c9962a] resize-none"
@@ -480,7 +480,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                 {aiError && (
                   <p className="text-amber-700 text-xs mt-1 bg-amber-50 px-2 py-1 rounded">
                     {aiError === 'IA no configurada'
-                      ? 'AÃ±ade GOOGLE_AI_API_KEY en Vercel para usar esta funciÃ³n'
+                      ? 'Añade GOOGLE_AI_API_KEY en Vercel para usar esta función'
                       : aiError}
                   </p>
                 )}
@@ -503,7 +503,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                   )}
                 </div>
                 <p className="text-xs text-[#9c7a3c] mb-3">
-                  Se convierten a WebP automÃ¡ticamente Â· MÃ¡x. 15 MB por foto
+                  Se convierten a WebP automáticamente · Máx. 15 MB por foto
                 </p>
                 <input
                   ref={fileInputRef}
@@ -526,13 +526,13 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                       className="text-center py-6 cursor-pointer hover:bg-[#fef9e8]/50 rounded-lg"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <div className="text-4xl mb-2">📷</div>
-                      <p className="text-sm font-medium text-[#7a5c1e]">Arrastra las fotos aquí</p>
+                      <div className="text-4xl mb-2">?</div>
+                      <p className="text-sm font-medium text-[#7a5c1e]">Arrastra las fotos aqu�</p>
                       <p className="text-xs text-[#9c7a3c] mt-1">o haz clic para seleccionar</p>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs text-[#9c7a3c] mb-2">{images.length} foto{images.length !== 1 ? 's' : ''} añadida{images.length !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-[#9c7a3c] mb-2">{images.length} foto{images.length !== 1 ? 's' : ''} a�adida{images.length !== 1 ? 's' : ''}</p>
                       <div className="grid grid-cols-3 gap-2">
                         {previews.map((src, i) => (
                           <div key={i} className="relative rounded-lg overflow-hidden bg-[#fef9e8] group" style={{ aspectRatio: '4/3' }}>
@@ -543,7 +543,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                               onClick={e => { e.stopPropagation(); removeImage(i) }}
                               className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
                               aria-label="Eliminar foto"
-                            >×</button>
+                            >�</button>
                             {i === 0 && (
                               <span className="absolute bottom-1 left-1 text-[10px] bg-[#c9962a] text-white px-1.5 py-0.5 rounded font-medium">
                                 Principal
@@ -559,7 +559,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                             style={{ aspectRatio: '4/3' }}
                           >
                             <span className="text-2xl leading-none">+</span>
-                            <span>Añadir</span>
+                            <span>A�adir</span>
                           </button>
                         )}
                       </div>
@@ -575,13 +575,13 @@ export default function PublicarWizard({ userId }: { userId: string }) {
           </div>
         )}
 
-        {/* Botones de navegaciÃ³n */}
+        {/* Botones de navegación */}
         <div className="flex justify-between mt-8 pt-6 border-t border-[#f4c94a]/20">
           <button
             onClick={() => setStep(s => Math.max(1, s - 1))}
             className={`px-5 py-2.5 rounded-lg text-sm font-medium border border-[#f4c94a]/60 text-[#7a5c1e] hover:bg-[#fef9e8] transition-all ${step === 1 ? 'invisible' : ''}`}
           >
-            â† Anterior
+            ← Anterior
           </button>
 
           {step < 4 ? (
@@ -590,7 +590,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
               disabled={!canNext()}
               className="px-6 py-2.5 rounded-lg text-sm font-bold bg-[#c9962a] text-white hover:bg-[#a87a20] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Siguiente â†’
+              Siguiente →
             </button>
           ) : (
             <button
@@ -606,7 +606,7 @@ export default function PublicarWizard({ userId }: { userId: string }) {
                   </svg>
                   Publicando...
                 </>
-              ) : 'ðŸš€ Publicar anuncio'}
+              ) : '🚀 Publicar anuncio'}
             </button>
           )}
         </div>
