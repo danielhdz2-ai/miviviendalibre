@@ -71,6 +71,7 @@ export default function Navbar({ isLoggedIn = false }: NavbarProps) {
             <Link href="/vender-casa"                                 className="hover:text-[#c9962a] transition-colors whitespace-nowrap">Vender casa</Link>
             <Link href="/gestoria"                                    className="hover:text-[#c9962a] transition-colors whitespace-nowrap">Gestoría</Link>
             <Link href="/agencias"                                    className="hover:text-[#c9962a] transition-colors whitespace-nowrap">Agencias</Link>
+            <Link href="/hipoteca"                                    className="hover:text-[#c9962a] transition-colors whitespace-nowrap font-semibold text-[#c9962a]">Hipotecas</Link>
           </nav>
 
           {/* Spacer para empujar CTAs a la derecha */}

@@ -113,7 +113,17 @@ function buildEmailHtml(
   `
 }
 
+// Vercel invoca los crons con GET — exportamos GET como handler principal
+export async function GET(req: NextRequest) {
+  return handler(req)
+}
+
+// También admitimos POST para poder dispararlo manualmente desde scripts
 export async function POST(req: NextRequest) {
+  return handler(req)
+}
+
+async function handler(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
