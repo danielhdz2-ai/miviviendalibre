@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
   // ── Obtener listings sin ai_description ─────────────────────────────────
   const { data: listings, error } = await sb
     .from('listings')
-    .select('id, title, description, operation, city, district, province, price_eur, bedrooms, bathrooms, area_m2')
+    .select('id, title, description, operation, city, district, province, price_eur, bedrooms, bathrooms, area_m2, is_particular')
     .eq('status', 'published')
     .or('ai_description.is.null,ai_description.eq.')
     .order('created_at', { ascending: false })

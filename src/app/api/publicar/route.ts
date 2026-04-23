@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
       bedrooms: bedrooms !== '' && bedrooms != null ? parseInt(bedrooms) : null,
       bathrooms: bathrooms !== '' && bathrooms != null ? parseInt(bathrooms) : null,
       area_m2: area !== '' && area != null ? parseFloat(area) : null,
+      is_particular: true,
     }
     generateAiDescription(listingForAi, openrouterKey)
       .then(async (aiDesc) => {

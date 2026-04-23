@@ -21,6 +21,7 @@ interface ListingInput {
   bedrooms: number | null
   bathrooms: number | null
   area_m2: number | null
+  is_particular?: boolean | null
 }
 
 function buildPrompt(l: ListingInput): string {
@@ -36,6 +37,19 @@ function buildPrompt(l: ListingInput): string {
     ? `${l.price_eur.toLocaleString('es-ES')} €${l.operation === 'rent' ? '/mes' : ''}`
     : null
 
+  const isParticular = l.is_particular !== false  // por defecto particular si no se especifica
+
+  const tonoInstruccion = isParticular
+    ? `- Tono cercano y directo, como si lo escribiera el propio propietario
+- Menciona que es trato directo sin comisión de agencia`
+    : `- Tono profesional e informativo, como si lo redactara una agencia inmobiliaria
+- No menciones propietario, trato directo ni comisiones
+- Empieza directamente describiendo la vivienda (ej: "Luminoso piso de 3 habitaciones en…")`
+
+  const publicadoPor = isParticular
+    ? '- Publicado por propietario directo (sin agencia)'
+    : '- Publicado por agencia inmobiliaria'
+
   return `Eres un experto redactor de anuncios inmobiliarios en España.
 Escribe una descripción atractiva de 120-150 palabras para este piso:
 
@@ -45,10 +59,10 @@ Escribe una descripción atractiva de 120-150 palabras para este piso:
 ${l.bathrooms ? `- Baños: ${l.bathrooms}` : ''}
 ${l.area_m2 ? `- Superficie: ${l.area_m2} m²` : ''}
 ${precio ? `- Precio: ${precio}` : ''}
-- Publicado por propietario directo (sin agencia)
+${publicadoPor}
 
 Requisitos:
-- Tono cercano, como si lo escribiera el propio propietario
+${tonoInstruccion}
 - Destaca la ubicación y el ambiente del barrio
 - Menciona características positivas (luminosidad, distribución, transporte)
 - Termina con llamada a la acción para contactar
