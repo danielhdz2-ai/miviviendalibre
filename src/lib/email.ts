@@ -7,11 +7,26 @@ const RESEND_API  = 'https://api.resend.com/emails'
 const FROM        = () => process.env.CONTACT_FROM_EMAIL ?? 'Inmonest <info@inmonest.com>'
 const ADMIN_EMAIL = 'info@inmonest.com'
 
-/** Destinatarios de notificaciones internas (formularios, leads, pagos, etc.) */
-export const NOTIFY_EMAILS = ['info@inmonest.com', 'inmonest.admin@gmail.com'] as const
+/** Ventas, gestoría, formularios de consulta → bandeja operativa completa */
+export const GESTORIA_NOTIFY_EMAILS = ['info@inmonest.com', 'inmonest.admin@gmail.com'] as const
 
+/** Contactos en anuncios de pisos / publicaciones → solo buzón general (no Gmail admin) */
+export const LISTING_NOTIFY_EMAILS = ['info@inmonest.com'] as const
+
+/** @deprecated Usar GESTORIA_NOTIFY_EMAILS — mantiene compatibilidad con admin allowlist */
+export const NOTIFY_EMAILS = GESTORIA_NOTIFY_EMAILS
+
+export function getGestoriaNotifyEmails(): string[] {
+  return [...GESTORIA_NOTIFY_EMAILS]
+}
+
+export function getListingNotifyEmails(): string[] {
+  return [...LISTING_NOTIFY_EMAILS]
+}
+
+/** Ventas y gestoría (alias histórico) */
 export function getNotifyEmails(): string[] {
-  return [...NOTIFY_EMAILS]
+  return getGestoriaNotifyEmails()
 }
 
 export { ADMIN_EMAIL }

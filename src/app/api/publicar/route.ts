@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateAiDescription } from '@/lib/ai-description'
-import { sendEmail, emailAnuncioPublicado, getNotifyEmails } from '@/lib/email'
+import { sendEmail, emailAnuncioPublicado, getListingNotifyEmails } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
   // ── Notificación al admin cuando un particular publica ────────────────────
   const resendKey   = process.env.RESEND_API_KEY
-  const notifyEmails = getNotifyEmails()
+  const notifyEmails = getListingNotifyEmails()
   const fromEmail   = process.env.CONTACT_FROM_EMAIL   ?? 'Inmonest <info@inmonest.com>'
 
   if (resendKey && data?.id) {
