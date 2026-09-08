@@ -95,7 +95,8 @@ async function main() {
   const urls = top50.map(l => `${BASE_URL}/pisos/${l.id}`)
   const urlsText = urls.join('\n')
   
-  fs.writeFileSync('public/urls-prioritarias.txt', urlsText)
+  fs.mkdirSync('scripts/seo/exports', { recursive: true })
+  fs.writeFileSync('scripts/seo/exports/urls-prioritarias.txt', urlsText)
   
   console.log('\n📋 TOP 50 URLS PRIORITARIAS')
   console.log('===========================\n')
@@ -106,7 +107,7 @@ async function main() {
     console.log(`   ${l.title.slice(0, 60)}...\n`)
   })
   
-  console.log('\n✅ Archivo generado: public/urls-prioritarias.txt')
+  console.log('\n✅ Archivo generado: scripts/seo/exports/urls-prioritarias.txt')
   console.log('\n📝 INSTRUCCIONES:')
   console.log('1. Abre Google Search Console: https://search.google.com/search-console')
   console.log('2. Ve a "Inspección de URLs"')
@@ -119,8 +120,8 @@ async function main() {
     top50.map(l => `${BASE_URL}/pisos/${l.id},${l.city},${l.operation},${l.score}`)
   ).join('\n')
   
-  fs.writeFileSync('public/urls-prioritarias.csv', csv)
-  console.log('\n✅ CSV generado: public/urls-prioritarias.csv')
+  fs.writeFileSync('scripts/seo/exports/urls-prioritarias.csv', csv)
+  console.log('\n✅ CSV generado: scripts/seo/exports/urls-prioritarias.csv')
   
   // Estadísticas por ciudad
   console.log('\n📊 DISTRIBUCIÓN POR CIUDAD')

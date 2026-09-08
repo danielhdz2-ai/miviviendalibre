@@ -19,5 +19,5 @@ Write-Host "✓ Generando lista de URLs..." -ForegroundColor Green
 # Ejecutar script
 npx tsx scripts/seo/generate-priority-urls-gsc.mts
 
-Write-Host "`n✅ Lista generada en public/urls-prioritarias.txt" -ForegroundColor Green
-Write-Host "`nAbre el archivo con: notepad public\urls-prioritarias.txt" -ForegroundColor Yellow
+Write-Host "`n✅ Lista generada en scripts/seo/exports/urls-prioritarias.txt" -ForegroundColor Green
+Write-Host "`nAbre el archivo con: notepad scripts\seo\exports\urls-prioritarias.txt" -ForegroundColor Yellow

@@ -1,0 +1,38 @@
+# Gestoría sin indexar / pendientes — 2026-09-08
+# Inventario: 126 · Sin indexar GSC: 1 · Pendientes verificar: 21
+# Probablemente indexadas: 100
+
+## SOLICITAR INDEXACIÓN (GSC confirmado + landings nuevas)
+https://inmonest.com/gestoria/prestamo-particulares/zaragoza
+https://inmonest.com/contratos-inmobiliarios/alicante
+https://inmonest.com/contratos-inmobiliarios/barcelona
+https://inmonest.com/contratos-inmobiliarios/bilbao
+https://inmonest.com/contratos-inmobiliarios/coruna
+https://inmonest.com/contratos-inmobiliarios/madrid
+https://inmonest.com/contratos-inmobiliarios/malaga
+https://inmonest.com/contratos-inmobiliarios/murcia
+https://inmonest.com/contratos-inmobiliarios/palma
+https://inmonest.com/contratos-inmobiliarios/pamplona
+https://inmonest.com/contratos-inmobiliarios/sevilla
+https://inmonest.com/contratos-inmobiliarios/valencia
+https://inmonest.com/contratos-inmobiliarios/zaragoza
+https://inmonest.com/gestoria/alquiler-local-comercial
+https://inmonest.com/gestoria/alquiler-local-comercial/alicante
+https://inmonest.com/gestoria/alquiler-local-comercial/barcelona
+https://inmonest.com/gestoria/alquiler-local-comercial/bilbao
+https://inmonest.com/gestoria/alquiler-local-comercial/madrid
+https://inmonest.com/gestoria/alquiler-local-comercial/malaga
+https://inmonest.com/gestoria/alquiler-local-comercial/sevilla
+https://inmonest.com/gestoria/alquiler-local-comercial/valencia
+https://inmonest.com/gestoria/alquiler-local-comercial/zaragoza
+
+## SOLO PROBLEMAS GSC (404, redirect…) — export GSC antiguo (ago 2026)
+# Verificadas en prod 2026-09-08: todas responden 200. Solicitar reindexación en GSC.
+# error_404: No se ha encontrado (404)
+https://inmonest.com/gestoria/alquiler-temporada
+# error_404: No se ha encontrado (404)
+https://inmonest.com/gestoria/asesoria-compra-piso/valencia
+# redirect: Página con redirección
+https://inmonest.com/gestoria/malaga
+# error_404: No se ha encontrado (404)
+https://inmonest.com/gestoria/reserva-compra

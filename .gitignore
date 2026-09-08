@@ -51,6 +51,7 @@ scripts/run-seed.bat
 scripts/seo/gsc-oauth-client.json
 scripts/seo/.gsc-token.json
 scripts/seo/output/
+scripts/seo/exports/
 public/client_secret*.json
 
 # backups

@@ -161,13 +161,6 @@ export const SEO_REDIRECTS: Redirect[] = [
     permanent: true,
   },
 
-  // ═══ SERVICIOS SIN LANDING PROPIA ═══
-  {
-    source: '/gestoria/reserva-compra',
-    destination: '/gestoria/solicitar/reserva-compra',
-    permanent: true,
-  },
-
   // ═══ CIUDADES — ATAJOS RAÍZ ═══
   {
     source: '/mes',

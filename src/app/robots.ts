@@ -30,6 +30,10 @@ export default function robots(): MetadataRoute.Robots {
           '/publicar/',
           // Debug
           '/debug/',
+          // Informes SEO internos (no indexar)
+          '/gestoria-indexacion-report.json',
+          '/urls-prioritarias.txt',
+          '/urls-prioritarias.csv',
         ],
       },
     ],

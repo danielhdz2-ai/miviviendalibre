@@ -1,7 +1,7 @@
 /**
  * generate-priority-urls.ts
  *
- * Consulta Supabase y genera /public/urls-prioritarias.txt con las
+ * Consulta Supabase y genera scripts/seo/exports/urls-prioritarias.txt con las
  * URLs estáticas principales + los 50 listings activos más recientes.
  *
  * Uso: npx tsx scripts/generate-priority-urls.ts
@@ -10,7 +10,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
 import { resolve } from 'path'
-import { writeFileSync } from 'fs'
+import { writeFileSync, mkdirSync } from 'fs'
 
 config({ path: resolve(process.cwd(), '.env.local') })
 
@@ -70,10 +70,12 @@ async function main() {
   const all = [...STATIC_URLS, ...listingUrls]
   const content = all.join('\n') + '\n'
 
-  const outPath = resolve(process.cwd(), 'public', 'urls-prioritarias.txt')
+  const outDir = resolve(process.cwd(), 'scripts/seo/exports')
+  mkdirSync(outDir, { recursive: true })
+  const outPath = resolve(outDir, 'urls-prioritarias.txt')
   writeFileSync(outPath, content, 'utf-8')
 
-  console.log(`✅ Generado: public/urls-prioritarias.txt`)
+  console.log(`✅ Generado: scripts/seo/exports/urls-prioritarias.txt`)
   console.log(`   ${STATIC_URLS.length} URLs estáticas + ${listingUrls.length} listings = ${all.length} total`)
 }
 
