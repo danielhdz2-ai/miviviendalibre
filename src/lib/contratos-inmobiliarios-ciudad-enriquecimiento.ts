@@ -15,6 +15,10 @@ export type ContratosCiudadEnriquecimiento = {
   normativaKicker: string
   barriosKicker: string
   serviciosRapidos: ContratosServicioRapidoLocal
+  /** Precio venta ejemplo para tabla comparativa agencia 5 % vs Inmonest */
+  precioEjemploVenta: number
+  /** Honorario orientativo agencia por gestión de alquiler (default 3.000 €) */
+  precioAgenciaAlquiler?: number
 }
 
 export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
@@ -27,6 +31,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Mercado madrileño',
     normativaKicker: 'LAU y fianzas en Madrid',
     barriosKicker: 'Operativa por barrio',
+    precioEjemploVenta: 320_000,
+    precioAgenciaAlquiler: 3_200,
     serviciosRapidos: {
       arras: 'Señal penitencial con condición suspensiva de hipoteca — habitual en operaciones de Chamberí y Salamanca donde el comprador compite con varias ofertas.',
       alquiler: 'Arrendamiento LAU con depósito ante la Comunidad de Madrid, inventario en pisos amueblados de Malasaña y cláusulas válidas en zona no tensionada o tensionada.',
@@ -40,6 +46,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Mercado catalán',
     normativaKicker: 'Generalitat e INCASÒL',
     barriosKicker: 'Barrios y municipios',
+    precioEjemploVenta: 350_000,
+    precioAgenciaAlquiler: 3_300,
     serviciosRapidos: {
       arras: 'Arras con mención de ITE obligatoria en edificios del Eixample y verificación de cargas antes de entregar señal en operaciones rápidas.',
       alquiler: 'Contrato LAU con límites de renta en zona tensionada, fianza en INCASÒL y distinción clara entre vivienda habitual y uso turístico en Poblenou o Gràcia.',
@@ -53,6 +61,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Comunitat Valenciana',
     normativaKicker: 'Documentación valenciana',
     barriosKicker: 'Ruzafa, centro y metropolitanos',
+    precioEjemploVenta: 260_000,
+    precioAgenciaAlquiler: 2_800,
     serviciosRapidos: {
       arras: 'Contrato de señal en compraventa de bajos en Ruzafa o Benimaclet con plazos realistas para hipoteca y revisión de nota simple del Registro de Valencia.',
       alquiler: 'Alquiler de vivienda habitual con cédula de habitabilidad autonómica, depósito legal y cláusulas sobre terrazas en hostelería mal clasificada.',
@@ -66,6 +76,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Andalucía occidental',
     normativaKicker: 'LAU andaluza',
     barriosKicker: 'Triana, Nervión y área metropolitana',
+    precioEjemploVenta: 220_000,
+    precioAgenciaAlquiler: 2_500,
     serviciosRapidos: {
       arras: 'Arras penitenciales en operaciones de Triana o Los Remedios con cláusulas sobre plusvalía municipal y plazo hasta escritura en notaría sevillana.',
       alquiler: 'Contrato LAU con fianza, IBI y comunidad repartidos conforme a ley — frecuente en alquileres familiares en Macarena o Bellavista.',
@@ -79,6 +91,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Mercado malagueño',
     normativaKicker: 'VFT y normativa Junta',
     barriosKicker: 'Centro, Soho y litoral',
+    precioEjemploVenta: 300_000,
+    precioAgenciaAlquiler: 2_900,
     serviciosRapidos: {
       arras: 'Señal de compraventa en operaciones con compradores internacionales en El Limonar o La Malagueta — cláusulas en español comprensible y plazos de financiación.',
       alquiler: 'Alquiler LAU distinto de régimen turístico VFT: imprescindible en centro histórico y Soho donde la Junta exige registro de viviendas vacacionales.',
@@ -92,6 +106,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'País Vasco',
     normativaKicker: 'LAU y Hacienda Foral',
     barriosKicker: 'Casco Viejo e Indautxu',
+    precioEjemploVenta: 280_000,
+    precioAgenciaAlquiler: 3_000,
     serviciosRapidos: {
       arras: 'Arras en operaciones de Indautxu o Abando con revisión registral y condiciones suspensivas habituales en compradores con hipoteca vasca.',
       alquiler: 'Alquiler LAU con depósito y cláusulas de actualización válidas — demanda estable en Deusto y Santutxu entre particulares sin agencia.',
@@ -105,6 +121,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Aragón',
     normativaKicker: 'Trámites en Zaragoza',
     barriosKicker: 'Centro, Delicias y Valdespartera',
+    precioEjemploVenta: 180_000,
+    precioAgenciaAlquiler: 2_200,
     serviciosRapidos: {
       arras: 'Contrato de señal en compraventa accesible del centro o Actur — plazos realistas y cláusulas de arras penitenciales redactadas para mercado aragonés.',
       alquiler: 'Alquiler de vivienda habitual en Valdespartera o Las Fuentes con fianza legal y sin cláusulas abusivas de gastos de comunidad.',
@@ -118,6 +136,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Costa Blanca',
     normativaKicker: 'Generalitat y turismo',
     barriosKicker: 'Explanada, centro y Elche',
+    precioEjemploVenta: 240_000,
+    precioAgenciaAlquiler: 2_700,
     serviciosRapidos: {
       arras: 'Señal en compraventa de pisos en Playa de San Juan o centro con distinción entre uso residencial y vivienda turística mal inscrita en Registro de Turisme.',
       alquiler: 'Alquiler LAU con depósito autonómico — no confundir con contrato turístico de temporada en barrios con alta presión hostelera.',
@@ -131,6 +151,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Islas Baleares',
     normativaKicker: 'Normativa balear',
     barriosKicker: 'Palma, Playa y interior',
+    precioEjemploVenta: 310_000,
+    precioAgenciaAlquiler: 3_100,
     serviciosRapidos: {
       arras: 'Arras en operaciones con restricciones de compra a no residentes y revisión de licencias turísticas en edificios del centro de Palma.',
       alquiler: 'Alquiler LAU con depósito en IBAVI cuando corresponde — cláusulas adaptadas a Ley de vivienda y mercado tensionado insular.',
@@ -144,6 +166,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Región de Murcia',
     normativaKicker: 'Trámites murcianos',
     barriosKicker: 'Centro, El Carmen y pedanías',
+    precioEjemploVenta: 175_000,
+    precioAgenciaAlquiler: 2_400,
     serviciosRapidos: {
       arras: 'Contrato de señal en operaciones de centro o pedanías con plazos para hipoteca y revisión de nota simple del Registro de Murcia.',
       alquiler: 'Alquiler LAU con fianza y depósito conforme a normativa — demanda estable en barrios universitarios y familiares.',
@@ -157,6 +181,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Mercado gallego',
     normativaKicker: 'Xunta y municipios',
     barriosKicker: 'Coruña, Ferrol y área',
+    precioEjemploVenta: 200_000,
+    precioAgenciaAlquiler: 2_600,
     serviciosRapidos: {
       arras: 'Arras en operaciones del Ensanche coruñés o Orzán con revisión registral y cláusulas sobre humedades frecuentes en edificios de piedra.',
       alquiler: 'Alquiler LAU con depósito autonómico gallego — cláusulas de fianza y devolución explícitas en mercado de rentas moderadas.',
@@ -170,6 +196,8 @@ export const CONTRATOS_CIUDAD_ENRIQUECIMIENTO: Record<
     mercadoKicker: 'Navarra',
     normativaKicker: 'Foral y municipal',
     barriosKicker: 'Ensanche, Rochapea y área',
+    precioEjemploVenta: 230_000,
+    precioAgenciaAlquiler: 2_800,
     serviciosRapidos: {
       arras: 'Señal penitencial en mercado estable de Pamplona — operaciones entre particulares con plazos para financiación y revisión de cargas registrales.',
       alquiler: 'Alquiler de vivienda habitual en Ensanche o Iturrama con cláusulas válidas y depósito conforme a LAU y normativa navarra aplicable.',

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import GestoriaHeroFullBleed from '@/components/GestoriaHeroFullBleed'
 import HomeTestimonials from '@/components/home/HomeTestimonials'
 import { getContratosCiudadEnriquecimiento } from '@/lib/contratos-inmobiliarios-ciudad-enriquecimiento'
+import ContratosInmobiliariosComparativa from '@/components/ContratosInmobiliariosComparativa'
 import {
   CONTRATOS_CIUDAD_PRECIOS,
   CONTRATOS_INMOBILIARIOS_CIUDADES,
@@ -224,6 +225,12 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
           </div>
         </div>
       </section>
+
+      <ContratosInmobiliariosComparativa
+        ciudadNombre={ciudad.nombre}
+        precioEjemploVenta={enriquecido.precioEjemploVenta}
+        precioAgenciaAlquiler={enriquecido.precioAgenciaAlquiler}
+      />
 
       {/* FAQ ciudad */}
       <section className="border-t border-gray-100 bg-gray-50 px-4 py-16">
