@@ -6,9 +6,16 @@ import Link from 'next/link'
 import GestoriaHeroFullBleed from '@/components/GestoriaHeroFullBleed'
 import HomeTestimonials from '@/components/home/HomeTestimonials'
 import { getContratosCiudadEnriquecimiento } from '@/lib/contratos-inmobiliarios-ciudad-enriquecimiento'
+import AgenciaGestoriaPanelDemo from '@/app/agencias/gestoria/AgenciaGestoriaPanelDemo'
+import ContratosComoFuncionaSection from '@/components/contratos/ContratosComoFuncionaSection'
+import ContratosExperienciaLocalSection from '@/components/contratos/ContratosExperienciaLocalSection'
 import ContratosInmobiliariosComparativa from '@/components/ContratosInmobiliariosComparativa'
+import FirmaCertIncluidaSection from '@/components/FirmaCertIncluidaSection'
+import GestoriaLandingExtras from '@/components/GestoriaLandingExtras'
+import { GestoriaCtaBanner } from '@/components/ui/GestoriaImageBanner'
+import { getCiudadCtaImage } from '@/lib/gestoria-images'
+import ContratosServiciosProfundos from '../ContratosServiciosProfundos'
 import {
-  CONTRATOS_CIUDAD_PRECIOS,
   CONTRATOS_INMOBILIARIOS_CIUDADES,
   CONTRATOS_INMOBILIARIOS_CIUDAD_SLUGS,
   type ContratosInmobiliariosCiudadConfig,
@@ -22,7 +29,6 @@ type Props = {
 
 export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-  const precios = CONTRATOS_CIUDAD_PRECIOS
   const enriquecido = getContratosCiudadEnriquecimiento(ciudad.slug)
 
   const otrasCiudades = CONTRATOS_INMOBILIARIOS_CIUDAD_SLUGS.filter((s) => s !== ciudad.slug)
@@ -103,6 +109,29 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
         </div>
       </section>
 
+      <ContratosServiciosProfundos
+        ciudadNombre={ciudad.nombre}
+        ciudadSlug={ciudad.slug}
+        sectionIntro={ciudad.serviciosIntro}
+        serviciosLocales={enriquecido.serviciosRapidos}
+        links={{
+          arrasInfo: ciudad.enlaceArras,
+          alquilerInfo: ciudad.enlaceAlquiler,
+          compraInfo: `/gestoria/asesoria-compra-piso/${ciudad.slug}`,
+          ventaInfo: [
+            'madrid',
+            'barcelona',
+            'valencia',
+            'sevilla',
+            'malaga',
+            'salamanca',
+            'valladolid',
+          ].includes(ciudad.slug)
+            ? `/gestoria/venta-completa-reserva-escritura/${ciudad.slug}`
+            : '/gestoria/venta-completa-reserva-escritura',
+        }}
+      />
+
       {/* Normativa autonómica */}
       <section className="border-t border-gray-100 bg-cream-50 px-4 py-16">
         <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 lg:grid-cols-2">
@@ -162,74 +191,30 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
         </div>
       </section>
 
-      {/* Servicios rápidos ciudad */}
-      <section className="bg-cream-100 px-4 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 text-center">
-            <h2 className="text-2xl font-extrabold text-gray-900">{ciudad.serviciosTitulo}</h2>
-            <p className="mx-auto mt-2 max-w-2xl text-sm text-gray-600">{ciudad.serviciosIntro}</p>
-          </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {[
-              {
-                titulo: `Arras penitenciales en ${ciudad.nombre}`,
-                desc: enriquecido.serviciosRapidos.arras,
-                precio: precios.arras,
-                href: ciudad.enlaceArras ?? '/gestoria/solicitar/arras-penitenciales',
-                imagen: '/gestoria1.jpg',
-              },
-              {
-                titulo: `Alquiler LAU en ${ciudad.nombre}`,
-                desc: enriquecido.serviciosRapidos.alquiler,
-                precio: precios.alquiler,
-                href: ciudad.enlaceAlquiler ?? '/gestoria/solicitar/contrato-alquiler',
-                imagen: '/gestoria7.jpg',
-              },
-              {
-                titulo: `Pack Arras Plus Vendedor`,
-                desc: enriquecido.serviciosRapidos.packVendedor,
-                precio: precios.packVendedor,
-                href: '/gestoria/solicitar/pack-arras-plus-vendedor',
-                imagen: '/contratodearras.jpg',
-              },
-              {
-                titulo: `Acompañamiento de compra`,
-                desc: enriquecido.serviciosRapidos.compra,
-                precio: precios.compraCompleta,
-                href: '/gestoria/solicitar/compra-completa-reserva-escritura',
-                imagen: '/gestoria11.jpg',
-              },
-            ].map((s) => (
-              <Link
-                key={s.titulo}
-                href={s.href}
-                className="group flex overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:border-gold-400 hover:shadow-md"
-              >
-                <div className="relative hidden w-32 shrink-0 sm:block">
-                  <Image src={s.imagen} alt="" fill className="object-cover" sizes="128px" />
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="mb-1 text-sm font-bold text-gray-900 group-hover:text-gold-700">
-                    {s.titulo}
-                  </h3>
-                  <p className="mb-3 flex-1 text-xs leading-relaxed text-gray-600">{s.desc}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-extrabold text-gold-600">{s.precio} €</span>
-                    <span className="text-xs font-semibold text-gold-600 group-hover:underline">
-                      Ver más →
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <ContratosInmobiliariosComparativa
         ciudadNombre={ciudad.nombre}
         precioEjemploVenta={enriquecido.precioEjemploVenta}
         precioAgenciaAlquiler={enriquecido.precioAgenciaAlquiler}
+      />
+
+      <ContratosExperienciaLocalSection ciudad={ciudad} enriquecido={enriquecido} />
+
+      <FirmaCertIncluidaSection compact />
+
+      <AgenciaGestoriaPanelDemo audience="particular" ciudadNombre={ciudad.nombre} />
+
+      <ContratosComoFuncionaSection ciudadNombre={ciudad.nombre} region={ciudad.region} />
+
+      <GestoriaLandingExtras
+        servicio="arras-penitenciales"
+        servicioNombre={`Contratos inmobiliarios en ${ciudad.nombre}`}
+        ciudad={ciudad.nombre}
+        whatsappMessage={`Hola Daniel, necesito redactar un contrato inmobiliario en ${ciudad.nombre}`}
+        skipCiudades
+        skipRelacionados
+        skipTestimonios
+        phase="contact"
+        className="mx-auto max-w-5xl px-4 sm:px-6"
       />
 
       {/* FAQ ciudad */}
@@ -298,6 +283,23 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
       </section>
 
       <HomeTestimonials />
+
+      <section className="px-4 py-16">
+        <div className="mx-auto max-w-5xl">
+          <GestoriaCtaBanner
+            eyebrow={`Contratos inmobiliarios · ${ciudad.nombre}`}
+            title={`Redacta tu contrato en ${ciudad.nombre} con gestor asignado`}
+            description={`Arras, alquiler LAU con inventario y fianza, o acompañamiento de compra. Desde ${GESTORIA_PRECIO_MIN} € · Entrega 48 h · Panel online`}
+            primaryHref="/gestoria/solicitar"
+            primaryLabel="Solicitar contrato online"
+            secondaryHref="#gestor-daniel"
+            secondaryLabel="Hablar con Daniel"
+            imageSrc={getCiudadCtaImage(ciudad.slug).src}
+            imageAlt={`Contratos inmobiliarios en ${ciudad.nombre}`}
+            imagePosition="right"
+          />
+        </div>
+      </section>
 
       {/* CTA final */}
       <section className="bg-gradient-to-r from-gold-700 to-gold-500 px-4 py-14">

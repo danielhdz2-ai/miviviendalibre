@@ -140,8 +140,9 @@ export default function CiudadesPage() {
                 </p>
                 <h2 className="text-3xl font-bold text-gray-900">Landing Pages por Ciudad</h2>
                 <p className="text-gray-600 mt-2 max-w-2xl">
-                  Todas las páginas locales activas: contratos de arras, alquiler LAU, alquiler de habitación,
-                  due diligence, hubs de gestoría, venta completa y portal inmobiliario por ciudad.
+                  Todas las páginas locales activas: contratos inmobiliarios, arras, alquiler LAU, alquiler de
+                  habitación, local comercial, due diligence, hubs de gestoría, venta completa y portal
+                  inmobiliario por ciudad.
                 </p>
               </div>
               <div className="flex gap-3">
@@ -200,14 +201,16 @@ export default function CiudadesPage() {
                 {LANDINGS_GENERICAS.map((page) => (
                   <Link
                     key={page.slug}
-                    href={`/gestoria/${page.slug}`}
+                    href={page.href ?? `/gestoria/${page.slug}`}
                     className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-gray-200 hover:border-gold-500 hover:bg-cream-100 transition-colors group"
                   >
                     <div className="min-w-0">
                       <p className="font-medium text-gray-900 text-sm truncate group-hover:text-[#8a6420]">
                         {page.nombre}
                       </p>
-                      <p className="text-xs text-gray-500">/{page.slug}</p>
+                      <p className="text-xs text-gray-500">
+                        {page.href ?? `/gestoria/${page.slug}`}
+                      </p>
                     </div>
                     <span className="text-xs font-bold text-gold-500 shrink-0">{getLandingPrecioDisplay(page)}</span>
                   </Link>

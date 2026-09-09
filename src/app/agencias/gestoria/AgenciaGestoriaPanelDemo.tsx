@@ -524,8 +524,11 @@ function DemoContent({ section }: { section: DemoSection }) {
 
 export default function AgenciaGestoriaPanelDemo({
   audience = 'agencia',
+  ciudadNombre,
 }: {
   audience?: GestoriaPanelDemoAudience
+  /** Personaliza copy en landings locales de contratos */
+  ciudadNombre?: string
 }) {
   const [section, setSection] = useState<DemoSection>('expediente')
   const bundle = getDemoBundle(audience)
@@ -534,9 +537,12 @@ export default function AgenciaGestoriaPanelDemo({
     audience === 'particular'
       ? {
           kicker: 'Panel de cliente',
-          title: 'Tu panel de gestoría: seguimiento en tiempo real',
-          description:
-            'Tras contratar un contrato inmobiliario, accedes a tu área privada. Sube documentación, sigue el expediente paso a paso, habla con tu gestor asignado y descarga el PDF cuando esté listo. Explora las secciones del panel.',
+          title: ciudadNombre
+            ? `Tu panel de gestoría en ${ciudadNombre}`
+            : 'Tu panel de gestoría: seguimiento en tiempo real',
+          description: ciudadNombre
+            ? `Tras contratar arras, alquiler o acompañamiento en ${ciudadNombre}, accedes a tu área privada. Sube nota simple, DNIs e inventario; sigue el expediente paso a paso, habla con Daniel o tu gestor asignado y descarga el PDF cuando esté listo.`
+            : 'Tras contratar un contrato inmobiliario, accedes a tu área privada. Sube documentación, sigue el expediente paso a paso, habla con tu gestor asignado y descarga el PDF cuando esté listo. Explora las secciones del panel.',
         }
       : {
           kicker: 'Panel de gestoría',

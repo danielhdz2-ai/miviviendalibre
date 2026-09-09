@@ -1,6 +1,7 @@
 import { CIUDADES_PORTAL_SLUGS } from './ciudades-portal'
 import { CONTRATO_ARRAS_PREMIUM } from './contrato-arras-premium-config'
 import { CONTRATO_ALQUILER_PREMIUM } from './contrato-alquiler-premium-config'
+import { CONTRATOS_INMOBILIARIOS_CIUDAD_SLUGS } from './contratos-inmobiliarios-ciudades'
 import { formatPrecioDesde, formatPrecioEuro, getPrecioServicio } from './gestoria-catalogo'
 import { precioLabel, precioLauInventarioLabel } from './gestoria-precios-ui'
 
@@ -24,6 +25,8 @@ export type LandingGenerica = {
   nombre: string
   precioSlug?: string
   precioInfo?: string
+  /** Ruta absoluta si no está bajo /gestoria/ */
+  href?: string
 }
 
 export function getLandingPrecioDisplay(item: {
@@ -85,6 +88,7 @@ const CIUDADES_PORTAL = [...CIUDADES_PORTAL_SLUGS]
 /** Evita /gestoria/gestoria cuando el slug del servicio es "gestoria" */
 export function getServicioGuiaHref(slug: string): string {
   if (slug === 'gestoria') return '/gestoria'
+  if (slug === 'contratos-inmobiliarios') return '/contratos-inmobiliarios'
   return `/gestoria/${slug}`
 }
 
@@ -97,6 +101,12 @@ export function filterCiudadesLandingActiva(landingId: string, ciudades: string[
 }
 
 export const LANDINGS_GENERICAS: LandingGenerica[] = [
+  {
+    slug: 'contratos-inmobiliarios',
+    nombre: 'Contratos Inmobiliarios (Hub España)',
+    precioInfo: formatPrecioDesde('arras-penitenciales'),
+    href: '/contratos-inmobiliarios',
+  },
   { slug: 'asesoria-compra-piso', nombre: 'Asesoría Compra de Piso', precioSlug: 'compra-completa-reserva-escritura' },
   { slug: 'due-diligence-precompra', nombre: 'Due Diligence Pre-Compra', precioSlug: 'pack-due-diligence-precompra' },
   { slug: 'asesoramiento-arras-venta', nombre: 'Asesoramiento Arras a Venta', precioSlug: 'asesoramiento-arras-venta' },
@@ -130,6 +140,13 @@ export const LANDINGS_POR_CIUDAD: LandingPorCiudad[] = [
     ciudades: [...new Set([...Object.keys(CONTRATO_ALQUILER_PREMIUM), 'granada'])].sort(),
   },
   {
+    id: 'contratos-inmobiliarios',
+    nombre: 'Contratos Inmobiliarios',
+    precioInfo: formatPrecioDesde('arras-penitenciales'),
+    href: (c) => `/contratos-inmobiliarios/${c}`,
+    ciudades: [...CONTRATOS_INMOBILIARIOS_CIUDAD_SLUGS].sort(),
+  },
+  {
     id: 'gestoria-hub',
     nombre: 'Gestoría Ciudad (Hub)',
     precioInfo: formatPrecioDesde('contrato-alquiler-barcelona'),
@@ -148,7 +165,7 @@ export const LANDINGS_POR_CIUDAD: LandingPorCiudad[] = [
     nombre: 'Asesoría Compra de Piso',
     precioSlug: 'compra-completa-reserva-escritura',
     href: (c) => `/gestoria/asesoria-compra-piso/${c}`,
-    ciudades: ['madrid', 'barcelona', 'valencia', 'sevilla', 'malaga', 'zaragoza', 'valladolid', 'mallorca', 'bilbao', 'coruna', 'murcia', 'pamplona'],
+    ciudades: ['madrid', 'barcelona', 'valencia', 'sevilla', 'malaga', 'alicante', 'zaragoza', 'valladolid', 'mallorca', 'bilbao', 'coruna', 'murcia', 'pamplona'],
   },
   {
     id: 'due-diligence',
@@ -247,6 +264,14 @@ export const SERVICIOS_GUIA = [
     slug: 'contrato-alquiler',
     imagen: '/gestoria4.jpg',
     categoria: 'Alquiler',
+  },
+  {
+    titulo: 'Contratos Inmobiliarios',
+    descripcion:
+      'Arras, alquiler LAU con inventario y fianza, acompañamiento de compra y packs vendedor por ciudad',
+    slug: 'contratos-inmobiliarios',
+    imagen: '/gestoria1.jpg',
+    categoria: 'Compraventa',
   },
   {
     titulo: 'Contrato Alquiler Habitación',

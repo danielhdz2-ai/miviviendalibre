@@ -5,6 +5,8 @@ export type ContratosServicioRapidoLocal = {
   alquiler: string
   packVendedor: string
   compra: string
+  /** Párrafo local para acompañamiento de venta (si no se indica, se usa packVendedor) */
+  venta?: string
 }
 
 export type ContratosCiudadEnriquecimiento = {

@@ -8,12 +8,14 @@ import HomeTestimonials from '@/components/home/HomeTestimonials'
 import FirmaCertIncluidaSection from '@/components/FirmaCertIncluidaSection'
 import AgenciaGestoriaPanelDemo from '@/app/agencias/gestoria/AgenciaGestoriaPanelDemo'
 import ContratosServiciosProfundos from './ContratosServiciosProfundos'
+import ContratosComoFuncionaSection from '@/components/contratos/ContratosComoFuncionaSection'
 import ContratosInmobiliariosComparativa from '@/components/ContratosInmobiliariosComparativa'
+import GestoriaLandingExtras from '@/components/GestoriaLandingExtras'
+import { GestoriaCtaBanner } from '@/components/ui/GestoriaImageBanner'
 import { BRAND_IMAGES } from '@/lib/brand-images'
 import { GESTORIA_PRECIO_MIN } from '@/lib/gestoria-catalogo'
 import {
   CONTRATOS_CIUDADES_LOCAL,
-  CONTRATOS_DESTACADOS,
   CONTRATOS_INMOBILIARIOS_FAQ,
 } from '@/lib/contratos-inmobiliarios-config'
 import {
@@ -182,83 +184,13 @@ export default function ContratosInmobiliariosContent() {
         </div>
       </section>
 
-      {/* Catálogo destacado */}
-      <section className="bg-white px-4 py-16">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 text-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-gold-500">
-              Servicios
-            </span>
-            <h2 className="mt-2 text-2xl font-extrabold text-gray-900">
-              Contratos inmobiliarios más solicitados
-            </h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
-              Desde reservas y arras hasta alquiler LAU y packs documentales para compradores
-              exigentes.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {CONTRATOS_DESTACADOS.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/gestoria/solicitar/${c.slug}`}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-gold-400 hover:shadow-md"
-              >
-                <div className="relative h-48 overflow-hidden bg-gray-200">
-                  <Image
-                    src={c.imagen}
-                    alt={`${c.nombre} — gestoría Inmonest`}
-                    fill
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  />
-                  <div
-                    className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"
-                    aria-hidden
-                  />
-                  <span className="absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-700">
-                    {c.categoria}
-                  </span>
-                  {c.badge && (
-                    <span className="absolute top-3 right-3 rounded-full bg-gold-500 px-2.5 py-1 text-[10px] font-bold text-white">
-                      {c.badge}
-                    </span>
-                  )}
-                  <div className="absolute right-3 bottom-3 rounded-lg bg-white/95 px-3 py-1.5">
-                    <div className="text-right">
-                      <div className="text-xl font-extrabold text-gold-500">{c.precio} €</div>
-                      <div className="-mt-0.5 text-[10px] font-medium text-gray-500">IVA incluido</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="mb-2 text-base leading-snug font-bold text-gray-900 group-hover:text-gold-700">
-                    {c.nombre}
-                  </h3>
-                  <p className="mb-4 flex-1 text-xs leading-relaxed text-gray-600">{c.descripcion}</p>
-                  <span className="text-xs font-semibold text-gold-600 group-hover:underline">
-                    Solicitar contrato →
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <div className="mt-8 text-center">
-            <Link
-              href="/servicios"
-              className="text-sm font-semibold text-gold-600 hover:text-gold-700 hover:underline"
-            >
-              Ver todos los servicios y precios →
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ContratosServiciosProfundos />
 
       <FirmaCertIncluidaSection />
 
       <AgenciaGestoriaPanelDemo audience="particular" />
 
-      <ContratosServiciosProfundos />
+      <ContratosComoFuncionaSection />
 
       <ContratosInmobiliariosComparativa showBeneficios={false} precioEjemploVenta={250_000} />
 
@@ -290,6 +222,34 @@ export default function ContratosInmobiliariosContent() {
       </section>
 
       <HomeTestimonials />
+
+      <GestoriaLandingExtras
+        servicio="arras-penitenciales"
+        servicioNombre="Contratos inmobiliarios"
+        whatsappMessage="Hola Daniel, necesito redactar un contrato inmobiliario"
+        skipCiudades
+        skipRelacionados
+        skipTestimonios
+        phase="contact"
+        className="mx-auto max-w-5xl px-4 sm:px-6"
+      />
+
+      <section className="px-4 py-16">
+        <div className="mx-auto max-w-5xl">
+          <GestoriaCtaBanner
+            eyebrow="Contratos inmobiliarios · Inmonest"
+            title="Redacta tu contrato con gestor asignado"
+            description={`Arras, alquiler LAU con inventario y fianza, o acompañamiento de compra. Desde ${GESTORIA_PRECIO_MIN} € · Entrega 48 h · Panel online`}
+            primaryHref="/gestoria/solicitar"
+            primaryLabel="Solicitar contrato online"
+            secondaryHref="#gestor-daniel"
+            secondaryLabel="Hablar con Daniel"
+            imageSrc="/keys.jpg"
+            imageAlt="Contratos inmobiliarios redactados por Inmonest"
+            imagePosition="right"
+          />
+        </div>
+      </section>
 
       {/* SEO local */}
       <section className="border-t border-gray-100 px-4 py-14">
