@@ -4,8 +4,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import GestoriaHeroFullBleed from '@/components/GestoriaHeroFullBleed'
-import ContratosServiciosProfundos from '../ContratosServiciosProfundos'
 import HomeTestimonials from '@/components/home/HomeTestimonials'
+import { getContratosCiudadEnriquecimiento } from '@/lib/contratos-inmobiliarios-ciudad-enriquecimiento'
 import {
   CONTRATOS_CIUDAD_PRECIOS,
   CONTRATOS_INMOBILIARIOS_CIUDADES,
@@ -22,6 +22,7 @@ type Props = {
 export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const precios = CONTRATOS_CIUDAD_PRECIOS
+  const enriquecido = getContratosCiudadEnriquecimiento(ciudad.slug)
 
   const otrasCiudades = CONTRATOS_INMOBILIARIOS_CIUDAD_SLUGS.filter((s) => s !== ciudad.slug)
 
@@ -40,8 +41,8 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
           {ciudad.region} · Particulares
         </span>
         <h1 className="mb-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">
-          {ciudad.heroH1}{' '}
-          <span className="text-gold-300">{ciudad.heroHighlight}</span>
+          {enriquecido.heroTitulo}{' '}
+          <span className="text-gold-300">{enriquecido.heroHighlight}</span>
         </h1>
         <p className="mb-6 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
           {ciudad.heroLead}
@@ -77,7 +78,7 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
         <div className="mx-auto max-w-5xl">
           <div className="mb-10 text-center">
             <span className="text-xs font-bold uppercase tracking-widest text-gold-500">
-              Mercado local
+              {enriquecido.mercadoKicker}
             </span>
             <h2 className="mt-2 text-2xl font-extrabold text-gray-900 sm:text-3xl">
               {ciudad.mercadoTitulo}
@@ -106,7 +107,7 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
         <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 lg:grid-cols-2">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-gold-500">
-              Marco jurídico
+              {enriquecido.normativaKicker}
             </span>
             <h2 className="mt-2 mb-4 text-2xl font-extrabold text-gray-900">
               {ciudad.normativaTitulo}
@@ -123,8 +124,8 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-xl">
             <Image
-              src="/gestoria2.jpg"
-              alt={`Gestoría inmobiliaria en ${ciudad.nombre} — revisión de contratos`}
+              src={ciudad.heroImage.src}
+              alt={ciudad.heroImage.alt}
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
@@ -138,7 +139,7 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
         <div className="mx-auto max-w-5xl">
           <div className="mb-10 text-center">
             <span className="text-xs font-bold uppercase tracking-widest text-gold-500">
-              Zonas y barrios
+              {enriquecido.barriosKicker}
             </span>
             <h2 className="mt-2 text-2xl font-extrabold text-gray-900">{ciudad.barriosTitulo}</h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-500">{ciudad.barriosIntro}</p>
@@ -171,28 +172,28 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
             {[
               {
                 titulo: `Arras penitenciales en ${ciudad.nombre}`,
-                desc: 'Contrato de señal personalizado con revisión registral. Ideal en compraventa entre particulares del barrio donde está el inmueble.',
+                desc: enriquecido.serviciosRapidos.arras,
                 precio: precios.arras,
                 href: ciudad.enlaceArras ?? '/gestoria/solicitar/arras-penitenciales',
                 imagen: '/gestoria1.jpg',
               },
               {
                 titulo: `Alquiler LAU en ${ciudad.nombre}`,
-                desc: 'Arrendamiento de vivienda habitual con cláusulas autonómicas e inventario profesional incluido como anexo.',
+                desc: enriquecido.serviciosRapidos.alquiler,
                 precio: precios.alquiler,
                 href: ciudad.enlaceAlquiler ?? '/gestoria/solicitar/contrato-alquiler',
                 imagen: '/gestoria7.jpg',
               },
               {
                 titulo: `Pack Arras Plus Vendedor`,
-                desc: `Vendes en ${ciudad.nombre} sin agencia: arras redactadas + documentación para notaría.`,
+                desc: enriquecido.serviciosRapidos.packVendedor,
                 precio: precios.packVendedor,
                 href: '/gestoria/solicitar/pack-arras-plus-vendedor',
                 imagen: '/contratodearras.jpg',
               },
               {
                 titulo: `Acompañamiento de compra`,
-                desc: `Asesor experto desde reserva hasta escritura en ${ciudad.nombre}. Tarifa fija, sin comisión de agencia.`,
+                desc: enriquecido.serviciosRapidos.compra,
                 precio: precios.compraCompleta,
                 href: '/gestoria/solicitar/compra-completa-reserva-escritura',
                 imagen: '/gestoria11.jpg',
@@ -223,8 +224,6 @@ export default function ContratosInmobiliariosCiudadContent({ ciudad }: Props) {
           </div>
         </div>
       </section>
-
-      <ContratosServiciosProfundos />
 
       {/* FAQ ciudad */}
       <section className="border-t border-gray-100 bg-gray-50 px-4 py-16">

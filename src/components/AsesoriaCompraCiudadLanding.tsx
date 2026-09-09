@@ -19,6 +19,7 @@ import {
   comisionAgenciaMin,
 } from '@/lib/asesoria-compra-ciudad-data'
 import { getAsesoriaCompraFaq } from '@/lib/asesoria-compra-ciudad-faq'
+import { getAsesoriaCompraEnriquecimiento } from '@/lib/asesoria-compra-ciudad-enriquecimiento'
 import {
   buildFaqSchema,
   buildLegalServiceSchema,
@@ -87,7 +88,8 @@ export default function AsesoriaCompraCiudadLanding({ config }: AsesoriaCompraCi
   const agenciaMin = comisionAgenciaMin(precioEjemploPiso)
   const agenciaMax = comisionAgenciaMax(precioEjemploPiso)
   const ahorroMin = agenciaMin - ASESORIA_COMPRA_PRECIO
-  const faq = getAsesoriaCompraFaq(nombre, region, precioEjemploPiso, config.faqPrioritarias)
+  const local = getAsesoriaCompraEnriquecimiento(slug)
+  const faq = getAsesoriaCompraFaq(slug, nombre, region, precioEjemploPiso, config.faqPrioritarias)
   const waHref = `https://wa.me/34745022862?text=${encodeURIComponent(`Hola Daniel, necesito asesoría para comprar piso en ${nombre}`)}`
 
   return (
@@ -132,11 +134,12 @@ export default function AsesoriaCompraCiudadLanding({ config }: AsesoriaCompraCi
       <section className="py-14 px-4 bg-slate-50 border-t border-gray-100">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-3">
-            ¿Por qué contratar Inmonest si compras de particular?
+            {local?.beneficiosTitulo ?? '¿Por qué contratar Inmonest si compras de particular?'}
           </h2>
           <p className="text-center text-gray-600 mb-10 max-w-2xl mx-auto">
-            Comprar sin agencia ahorra comisiones, pero no elimina el riesgo legal. Un gestor profesional
-            te protege en cada trámite.
+            {local?.beneficiosIntro ?? (
+              <>Comprar sin agencia ahorra comisiones, pero no elimina el riesgo legal. Un gestor profesional te protege en cada trámite.</>
+            )}
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {BENEFICIOS.map((b) => (
@@ -152,14 +155,16 @@ export default function AsesoriaCompraCiudadLanding({ config }: AsesoriaCompraCi
       <section className="py-14 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-3">
-            Trámites que gestionamos por ti en {nombre}
+            {local?.tramitesTitulo ?? `Trámites que gestionamos por ti en ${nombre}`}
           </h2>
           <p className="text-center text-gray-600 mb-8">
-            Todo lo que una agencia haría en la parte legal — sin cobrarte un porcentaje del piso.
+            {local?.tramitesIntro ?? (
+              <>Todo lo que una agencia haría en la parte legal — sin cobrarte un porcentaje del piso.</>
+            )}
           </p>
           <ul className="grid sm:grid-cols-2 gap-3">
-            {ASESORIA_COMPRA_TRAMITES.map((t) => (
-              <li key={t} className="flex items-start gap-2 text-sm text-gray-700 bg-slate-50 rounded-lg p-3">
+            {[...(local?.tramitesLocales ?? []), ...ASESORIA_COMPRA_TRAMITES].map((t, i) => (
+              <li key={`${i}-${t.slice(0, 24)}`} className="flex items-start gap-2 text-sm text-gray-700 bg-slate-50 rounded-lg p-3">
                 <GestoriaCheckIcon className="mt-0.5" />
                 {t}
               </li>
@@ -171,10 +176,10 @@ export default function AsesoriaCompraCiudadLanding({ config }: AsesoriaCompraCi
       <section className="py-14 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900 mb-10">
-            Proceso en 4 pasos
+            {local?.pasosTitulo ?? 'Proceso en 4 pasos'}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {PASOS.map((paso, i) => (
+            {(local?.pasos ?? PASOS).map((paso, i) => (
               <div key={paso.titulo} className="bg-slate-50 border border-gray-200 rounded-xl p-5">
                 <span className="text-3xl font-black text-gold-500/30 block mb-2">0{i + 1}</span>
                 <h3 className="font-bold text-gray-900 mb-2">{paso.titulo}</h3>

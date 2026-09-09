@@ -28,28 +28,11 @@ import { GestoriaCtaBanner } from '@/components/ui/GestoriaImageBanner'
 import { getCiudadCtaImage } from '@/lib/gestoria-images'
 import { ORGANIZATION_SCHEMA_ID } from '@/lib/organization-schema'
 import { precioLabel } from '@/lib/gestoria-precios-ui'
+import { getAlquilerLocalEnriquecimiento } from '@/lib/alquiler-local-comercial-ciudad-enriquecimiento'
 
 const BASE_URL = 'https://inmonest.com'
 const SOLICITAR_URL = '/gestoria/solicitar/alquiler-local-comercial'
 const SERVICIO_SLUG = 'alquiler-local-comercial'
-
-const PANEL_CLAUSULAS = [
-  {
-    titulo: 'Actividad y licencia municipal',
-    estado: 'Revisada',
-    nota: 'Uso comercial compatible con licencia. Cláusula suspensiva si no se obtiene apertura.',
-  },
-  {
-    titulo: 'Derecho de tanteo y retracto',
-    estado: 'Asesorada',
-    nota: 'Plazos y notificación ante venta del local explicados al propietario.',
-  },
-  {
-    titulo: 'Obras, IBI y traspaso',
-    estado: 'Ajustada',
-    nota: 'Reparto de mejoras, gastos de comunidad y condiciones de traspaso pactadas por escrito.',
-  },
-] as const
 
 const FAQ_BASE = [
   {
@@ -80,6 +63,7 @@ type Props = {
 
 export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
   const { nombre, slug, region } = config
+  const local = getAlquilerLocalEnriquecimiento(slug)
   const tradicionalMin = mercadoTradicionalMin()
   const tradicionalMax = mercadoTradicionalMax()
   const ahorroMin = ahorroVsMercadoTradicional()
@@ -151,15 +135,23 @@ export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
                 Particulares · LAU empresarial · {region}
               </span>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                Contrato alquiler local comercial en <span className="text-gold-500">{nombre}</span>
+                {local?.heroH1 ?? (
+                  <>
+                    Contrato alquiler local comercial en <span className="text-gold-500">{nombre}</span>
+                  </>
+                )}
               </h1>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                ¿Alquilas o arriendas un local en {nombre}? Inmonest está diseñado para{' '}
-                <strong className="text-gray-900">particulares</strong> que quieren formalizar su operación
-                con la mayor garantía y seriedad — sin pagar comisión de agencia. Un{' '}
-                <strong>gestor inmobiliario experto</strong> redacta tu contrato LAU empresarial: tanteo, obras,
-                traspaso y renta.{' '}
-                <strong className="text-gray-900">{ALQUILER_LOCAL_COMERCIAL_PRECIO}€ IVA incluido.</strong>
+                {local?.heroLead ?? (
+                  <>
+                    ¿Alquilas o arriendas un local en {nombre}? Inmonest está diseñado para{' '}
+                    <strong className="text-gray-900">particulares</strong> que quieren formalizar su operación
+                    con la mayor garantía y seriedad — sin pagar comisión de agencia. Un{' '}
+                    <strong>gestor inmobiliario experto</strong> redacta tu contrato LAU empresarial: tanteo, obras,
+                    traspaso y renta.{' '}
+                    <strong className="text-gray-900">{ALQUILER_LOCAL_COMERCIAL_PRECIO}€ IVA incluido.</strong>
+                  </>
+                )}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Link
@@ -203,7 +195,25 @@ export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
         servicioLabel={`alquiler de local comercial en ${nombre}`}
         ciudadNombre={nombre}
         panelServicio="Alquiler local comercial LAU"
-        clausulas={PANEL_CLAUSULAS}
+        clausulas={
+          local?.panelClausulas ?? [
+            {
+              titulo: 'Actividad y licencia municipal',
+              estado: 'Revisada',
+              nota: `Uso comercial compatible con licencia en ${nombre}. Cláusula suspensiva si no se obtiene apertura.`,
+            },
+            {
+              titulo: 'Derecho de tanteo y retracto',
+              estado: 'Asesorada',
+              nota: 'Plazos y notificación ante venta del local explicados al propietario.',
+            },
+            {
+              titulo: 'Obras, IBI y traspaso',
+              estado: 'Ajustada',
+              nota: `Reparto de mejoras y traspaso pactados por escrito en ${nombre}.`,
+            },
+          ]
+        }
       />
 
       {/* Presentación Inmonest + mercado local */}
@@ -213,19 +223,17 @@ export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
             Gestoría inmobiliaria para particulares
           </p>
           <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
-            Inmonest: trámites de particular con garantía profesional
+            {local?.inmonestTitulo ?? 'Inmonest: trámites de particular con garantía profesional'}
           </h2>
           <p className="text-gray-600 mb-4 leading-relaxed">{config.mercadoIntro}</p>
-          <p className="text-gray-600 mb-4 leading-relaxed">
-            Inmonest es una <strong className="text-gray-900">gestoría inmobiliaria digital</strong> creada
-            para particulares — propietarios, autónomos y pymes — que quieren hacer trámites entre particulares
-            con la misma seriedad que una gestoría profesional, pero sin comisión de inmobiliaria ni
-            intermediarios innecesarios.
-          </p>
           <p className="text-gray-600 leading-relaxed">
-            Cuando contratas, se te asigna un <strong className="text-gray-900">gestor inmobiliario dedicado</strong>{' '}
-            que conoce el mercado de {nombre}, te explica el Título III LAU, qué cláusulas necesitas según tu
-            actividad y cómo protegerte ante impagos, obras no amortizadas o traspasos no autorizados.
+            {local?.inmonestParrafoExtra ?? (
+              <>
+                Cuando contratas, se te asigna un <strong className="text-gray-900">gestor inmobiliario dedicado</strong>{' '}
+                que conoce el mercado de {nombre}, te explica el Título III LAU, qué cláusulas necesitas según tu
+                actividad y cómo protegerte ante impagos, obras no amortizadas o traspasos no autorizados.
+              </>
+            )}
           </p>
         </div>
       </section>
@@ -241,14 +249,15 @@ export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
       <section className="py-16 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">
-            Bases legales del alquiler de local comercial
+            {local?.basesLegalesTitulo ?? 'Bases legales del alquiler de local comercial'}
           </h2>
           <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            En {nombre} el marco es el Título III LAU. Tu gestor adapta el contrato a la normativa estatal y
-            a las particularidades del mercado local.
+            {local?.basesLegalesIntro ?? (
+              <>En {nombre} el marco es el Título III LAU. Tu gestor adapta el contrato a la normativa estatal y a las particularidades del mercado local.</>
+            )}
           </p>
           <div className="grid md:grid-cols-2 gap-6">
-            {LOCAL_COMERCIAL_BASES_LEGALES.map((block) => (
+            {(local?.basesLegalesLocal ?? LOCAL_COMERCIAL_BASES_LEGALES).map((block) => (
               <div key={block.titulo} className="bg-slate-50 p-8 rounded-xl border border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900 mb-3">{block.titulo}</h3>
                 <p className="text-gray-600 text-sm leading-relaxed">{block.desc}</p>
@@ -285,7 +294,7 @@ export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
             Desde la primera consulta hasta la entrega del PDF firmable. Atención personalizada en cada fase.
           </p>
           <div className="grid md:grid-cols-5 gap-6">
-            {LOCAL_COMERCIAL_PASOS.map((paso) => (
+            {(local?.pasosLocal ?? LOCAL_COMERCIAL_PASOS).map((paso) => (
               <div key={paso.num} className="text-center">
                 <div className="w-12 h-12 bg-forest-800 text-gold-500 rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4">
                   {paso.num}
@@ -311,6 +320,11 @@ export default function AlquilerLocalComercialCiudadLanding({ config }: Props) {
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
             Cuánto ahorras en {nombre}
           </h2>
+          {local?.comparativaIntro && (
+            <p className="text-center text-gray-600 mb-6 max-w-2xl mx-auto text-sm leading-relaxed">
+              {local.comparativaIntro}
+            </p>
+          )}
           <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-200">
             <table className="w-full text-sm">
               <thead>
